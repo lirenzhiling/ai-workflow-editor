@@ -1,0 +1,13 @@
+# 依赖包 (太大了，可以通过 npm install 自己下)
+node_modules/
+
+# 打包产物 (可以随时通过 npm run build 生成，不需要存)
+dist/
+
+# 环境变量 (里面可能有密码，不能传)
+.env
+.DS_Store
+
+# 编辑器配置
+.vscode/
+.idea/

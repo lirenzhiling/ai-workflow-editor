@@ -1,0 +1,7 @@
+{
+    "presets": [
+        "@babel/preset-env",//转换最新的js语法，兼容旧浏览器
+        "@babel/preset-typescript",//转换typescript语法
+        ["@babel/preset-react", { "runtime": "automatic" }]//转换react的jsx语法,并在文件自动引入React
+    ]
+}
