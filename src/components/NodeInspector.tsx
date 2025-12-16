@@ -5,11 +5,12 @@ import useStore from '../store';
 
 const NodeInspector = () => {
   // 1. 从 Store 取出需要的数据和方法
-  const { nodes, selectedNodeId, updateNodeData } = useStore(
+  const { nodes, selectedNodeId, updateNodeData, runNode } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
       selectedNodeId: state.selectedNodeId,
       updateNodeData: state.updateNodeData,
+      runNode: state.runNode,
     }))
   );
 
@@ -27,12 +28,12 @@ const NodeInspector = () => {
     // 右侧面板容器
     <div className="w-80 bg-white border-l border-gray-200 p-4 shadow-xl z-20 flex flex-col">
       <div className="font-bold mb-4 text-gray-700">⚙️ 节点配置</div>
-      
+
       {/* 调试信息：让你确认选对了没 */}
       <div className="text-xs text-gray-400 mb-4">ID: {selectedNode.id}</div>
 
       <label className="block text-sm font-medium text-gray-700 mb-1">节点名称</label>
-      
+
       <input
         type="text"
         className="border rounded p-2 w-full text-sm mb-4"
@@ -40,33 +41,59 @@ const NodeInspector = () => {
         value={selectedNode.data.label || ''}
         // 2. 绑定事件：输入改变时，通知 Store 更新数据
         onChange={(e) => {
-           // 提示：调用 updateNodeData(节点ID, { label: 新值 })
-           updateNodeData(selectedNode.id, { label: e.target.value });
+          // 提示：调用 updateNodeData(节点ID, { label: 新值 })
+          updateNodeData(selectedNode.id, { label: e.target.value });
         }}
       />
-      
+
       {/* 字段 2：大模型特定配置 (仅当类型为 llmNode 时显示) */}
-        {selectedNode.type === 'llmNode' && (
-           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">模型型号</label>
-             <select 
-                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                value={selectedNode.data.model || 'GPT-4o'}
-                onChange={(e) => updateNodeData(selectedNode.id, { model: e.target.value })}
-             >
-                <option value="Deepseek">Deepseek</option>
-                <option value="GPT-4o">GPT-4o</option>
-                <option value="GPT-3.5">GPT-3.5</option>
-                <option value="Claude-3">Claude 3.5 Sonnet</option>
-             </select>
-             <textarea 
-                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2" 
-                placeholder="请输入提示词..." 
-                value={selectedNode.data.prompt || ''} 
-                onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })}
-              />
-           </div>
-        )}
+      {selectedNode.type === 'llmNode' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">模型型号</label>
+          <select
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+            value={selectedNode.data.model || 'GPT-4o'}
+            onChange={(e) => updateNodeData(selectedNode.id, { model: e.target.value })}
+          >
+            <option value="Deepseek">Deepseek</option>
+            <option value="GPT-4o">GPT-4o</option>
+            <option value="GPT-3.5">GPT-3.5</option>
+            <option value="Claude-3">Claude 3.5 Sonnet</option>
+          </select>
+          <textarea
+            className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
+            placeholder="请输入提示词..."
+            value={selectedNode.data.prompt || ''}
+            onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })}
+          />
+          <div className="border-t border-gray-200 my-4"></div>
+          <div className="mt-4 mb-2">
+            <button
+              onClick={() => runNode(selectedNode.id)}
+              disabled={selectedNode.data.status === 'running'}
+              className={`w-full py-2 rounded text-white font-medium transition-colors
+              ${selectedNode.data.status === 'running' ? 'bg-indigo-300' : 'bg-indigo-600 hover:bg-indigo-700'}
+            `}
+            >
+              {selectedNode.data.status === 'running' ? '🚀 正在思考...' : '▶ 运行'}
+            </button>
+          </div>
+          {/* 运行结果展示区 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📺 运行结果
+            </label>
+            <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
+              {selectedNode.data.output ? (
+                <span>{selectedNode.data.output}</span>
+              ) : (
+                <span className="text-gray-400 italic">等待运行...</span>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

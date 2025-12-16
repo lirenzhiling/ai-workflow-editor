@@ -1,24 +1,25 @@
-const path=require('path');
-const HtmlWebpackPlugin=require('html-webpack-plugin');
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
-module.exports={
+module.exports = {
     //1.模式： development（开发模式：代码不会被压缩）, production（生产模式：会压缩代码）
-    mode:'development',
+    mode: 'development',
     //2.入口文件
-    entry:'./src/index.tsx',
+    entry: './src/index.tsx',
     //3.输出文件
-    output:{
-        filename:'bundle.js',//打包后的文件名
-        path:path.resolve(__dirname,'dist'),//打包后的路径，必须是绝对路径
-        clean:true, //每次打包前清理dist文件夹
+    output: {
+        filename: 'bundle.js',//打包后的文件名
+        path: path.resolve(__dirname, 'dist'),//打包后的路径，必须是绝对路径
+        clean: true, //每次打包前清理dist文件夹
     },
     //4.加载器
-    module:{
-        rules:[
+    module: {
+        rules: [
             {
-                test:/\.tsx?$/,//匹配以.ts结尾的文件
-                use:'babel-loader',//使用ts-loader加载器
-                exclude:/node_modules/,//排除node_modules文件夹
+                test: /\.tsx?$/,//匹配以.ts结尾的文件
+                use: 'babel-loader',//使用ts-loader加载器
+                exclude: /node_modules/,//排除node_modules文件夹
             },
             {
                 test: /\.css$/i,
@@ -31,13 +32,16 @@ module.exports={
         ],
     },
     //5.插件Plugins：扩展Webpack功能
-    plugins:[
+    plugins: [
         new HtmlWebpackPlugin({
-            template:'./public/index.html',//模板文件
+            template: './public/index.html',//模板文件
+        }),
+        new Dotenv({
+            path: './.env', // 指定要去读哪个文件
         }),
     ],
     //6.解析模块:便于引入文件时可以不写后缀名
-    resolve:{
-        extensions:['.tsx','.ts','.js'],//自动解析这些扩展名的文件
+    resolve: {
+        extensions: ['.tsx', '.ts', '.js'],//自动解析这些扩展名的文件
     },
 };
