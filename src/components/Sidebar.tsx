@@ -25,7 +25,7 @@ const Sidebar = () => {
 
       {/* 可以在这里加更多节点，比如 Input, Output 等 */}
       <div
-        className="h-16 border-2 border-pink-500 rounded cursor-grab flex items-center justify-center bg-pink-50 hover:bg-pink-100 mb-4"
+        className="h-16 border-2 border-pink-500 rounded cursor-grab flex items-center justify-center bg-pink-50 hover:bg-pink-100"
         onDragStart={(event) => onDragStart(event, 'startNode')}
         draggable
       >
