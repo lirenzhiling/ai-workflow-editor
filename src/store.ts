@@ -186,10 +186,11 @@ const useStore = create<RFState>()(
         {
             name: "ai-flow-storage", //key
             storage: createJSONStorage(() => localStorage), //存储方式:LocalStorage
-            // 存储内容: 只存 nodes 和 edges
+            // 存储内容: 存 nodes、edges 和 selectedNodeId
             partialize: (state) => ({
                 nodes: state.nodes,
                 edges: state.edges,
+                selectedNodeId: state.selectedNodeId,
             }),
 
         }
