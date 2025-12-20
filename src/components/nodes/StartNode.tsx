@@ -9,7 +9,7 @@ const StartNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     );
 
     return (
-        <div className={`w-64 bg-white rounded-lg border-2 border-pink-500 shadow-xl overflow-hidden transition-all duration-300 ${selected ? 'ring-8 ring-pink-400/70 ring-offset-4 shadow-2xl shadow-pink-500/60 scale-105' : ''}`}>
+        <div className={`w-64 bg-white rounded-lg border-2 border-pink-500 shadow-xl overflow-hidden transition-shadow duration-200 ${selected ? 'ring-8 ring-pink-400/70 ring-offset-4 shadow-2xl shadow-pink-500/60 scale-105' : ''}`}>
             {/* 标题栏 */}
             <div className="p-2 text-white flex items-center bg-pink-500 bg-gradient-to-r from-pink-500 to-rose-500">
                 <span className="text-xl mr-2">🏁</span>

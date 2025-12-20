@@ -90,7 +90,7 @@ const FlowEditorContent = () => {
           onConnect={onConnect}
           onDrop={onDrop}
           onDragOver={onDragOver}
-          nodeTypes={nodeTypes} // 告诉画布你自定义了哪些节点类型
+          nodeTypes={nodeTypes} // 告诉画布自定义了哪些节点类型
           onNodeClick={(event, node) => setSelectedNode(node.id)}
           fitView
         >

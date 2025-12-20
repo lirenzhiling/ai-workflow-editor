@@ -18,7 +18,7 @@ const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
 
   return (
     // 外层容器：我已经帮你写好了一个带紫色边框的卡片样式
-    <div className={`w-64 bg-white rounded-lg border-2 border-indigo-500 shadow-xl overflow-hidden transition-all duration-300 ${selected ? 'ring-8 ring-indigo-400/70 ring-offset-4 shadow-2xl shadow-indigo-500/60 scale-105' : ''}`}>
+    <div className={`w-64 bg-white rounded-lg border-2 border-indigo-500 shadow-xl overflow-hidden transition-shadow duration-200 ${selected ? 'ring-8 ring-indigo-400/70 ring-offset-4 shadow-2xl shadow-indigo-500/60 scale-105' : ''}`}>
 
       {/* 标题栏 */}
       <div className="p-2 text-white flex items-center bg-indigo-500 bg-gradient-to-r">
