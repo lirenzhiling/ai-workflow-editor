@@ -15,10 +15,12 @@ import LLMNode from './nodes/LLMNode';
 import Sidebar from './Sidebar';
 import NodeInspector from './NodeInspector';
 import StartNode from './nodes/StartNode';
+import EndNode from './nodes/EndNode';
 
 const nodeTypes = {
   llmNode: LLMNode,
   startNode: StartNode,
+  endNode: EndNode,
 };
 
 // ==========================================

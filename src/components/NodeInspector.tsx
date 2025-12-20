@@ -103,9 +103,22 @@ const NodeInspector = () => {
             <textarea
               className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
               placeholder="请输入提示词..."
-              value={selectedNode.data.output || ''}
-              onChange={(e) => updateNodeData(selectedNode.id, { output: e.target.value })}
+              value={selectedNode.data.input || ''}
+              onChange={(e) => updateNodeData(selectedNode.id, { input: e.target.value })}
             />
+          </div>
+        )}
+        {/* 节点种类为 endNode 时*/}
+        {selectedNode.type === 'endNode' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">输出内容</label>
+            <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
+              {selectedNode.data.output ? (
+                <span>{selectedNode.data.output}</span>
+              ) : (
+                <span className="text-gray-400 italic">等待运行...</span>
+              )}
+            </div>
           </div>
         )}
       </div>
