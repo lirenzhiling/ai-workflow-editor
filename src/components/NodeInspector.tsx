@@ -112,7 +112,11 @@ const NodeInspector = () => {
       {/* 删除节点 */}
       <div className="mt-4 pt-4 border-t border-gray-200">
         <button
-          onClick={() => deleteNode(selectedNode.id)}
+          onClick={() => {
+            if (window.confirm('确定要删除这个节点吗？')) {
+              deleteNode(selectedNode.id);
+            }
+          }}
           className="w-full py-2 text-red-600 border border-red-200 bg-red-50 rounded hover:bg-red-100 transition-colors text-sm font-medium"
         >
           🗑️ 删除选中节点
