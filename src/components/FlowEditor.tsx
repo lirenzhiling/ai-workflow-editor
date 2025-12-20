@@ -1,4 +1,4 @@
-import React, { useCallback,useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import ReactFlow, {
   // 基础组件
   Background,
@@ -9,14 +9,16 @@ import ReactFlow, {
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
-import {useShallow} from 'zustand/react/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
 import LLMNode from './nodes/LLMNode';
 import Sidebar from './Sidebar';
 import NodeInspector from './NodeInspector';
+import StartNode from './nodes/StartNode';
 
 const nodeTypes = {
-  llmNode: LLMNode
+  llmNode: LLMNode,
+  startNode: StartNode,
 };
 
 // ==========================================
@@ -26,7 +28,7 @@ const FlowEditorContent = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   // 从 Store 取出状态和方法
   // selector 模式：只监听我们需要的数据，避免不必要的渲染
-  const {nodes, onNodesChange, edges, onEdgesChange, onConnect,addNode,setSelectedNode} = useStore(
+  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, addNode, setSelectedNode } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
       edges: state.edges,
@@ -38,7 +40,7 @@ const FlowEditorContent = () => {
     }))
   );
   // 获取 ReactFlow 实例（用于坐标转换）
-  const {project} = useReactFlow();
+  const { project } = useReactFlow();
   // 处理“拖拽结束” (Drop)
   const onDrop = useCallback(
     (event: React.DragEvent) => {
@@ -56,13 +58,13 @@ const FlowEditorContent = () => {
         });
         // 创建新节点
         const newNode = {
-          id:`${type}-${Date.now()}`, // 生成唯一 ID
+          id: `${type}-${Date.now()}`, // 生成唯一 ID
           type,
           position,
           data: { label: `${type} 节点` },// 初始数据
-          };
-    
-          addNode(newNode); // 调用 Store 的方法
+        };
+
+        addNode(newNode); // 调用 Store 的方法
       }
     },
     [project, addNode],
@@ -89,7 +91,7 @@ const FlowEditorContent = () => {
           onDrop={onDrop}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes} // 告诉画布你自定义了哪些节点类型
-          onNodeClick={(event,node)=>setSelectedNode(node.id)}
+          onNodeClick={(event, node) => setSelectedNode(node.id)}
           fitView
         >
           <Background />

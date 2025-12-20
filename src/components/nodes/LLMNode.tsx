@@ -6,7 +6,7 @@ import useStore from '../../store';
 import { useShallow } from 'zustand/react/shallow';
 
 // 使用 memo 包裹，防止画布拖动时其他不相关的节点重复渲染（性能优化）
-const LLMNode = memo(({ id, data, isConnectable }: NodeProps) => {
+const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
 
   const { runNode } = useStore(
     /* 在这里写代码 */
@@ -15,76 +15,10 @@ const LLMNode = memo(({ id, data, isConnectable }: NodeProps) => {
     }))
   );
 
-  // const handleRun = async () => {
-  //   // 1. 先清空之前的输出（这里我们需要一个新的状态来存输出，稍后加）
-  //   updateNodeData(id, { output: '' });
-  //   console.log("准备起飞！提示词是：", data.prompt);
-  //   try {
-  //     const response = await fetch('http://localhost:4000/api/chat', {
-  //       method: 'post',
-  //       headers: { 
-  //         "Content-Type": "application/json"
-  //       },
-  //       body: JSON.stringify({
-  //         messages: [
-  //           { role: 'user', content: data.prompt }
-  //         ]
-  //       })
-  //     });
-  //     if (!response.body) return;
-
-  //     // 2. 拿到读取器 (Reader)
-  //     const reader = response.body?.getReader();
-  //     const decoder = new TextDecoder();
-  //     if (!reader) return;
-  //     // 临时存一下当前的完整句子
-  //     let currentOutput = '';
-
-  //     console.log("开始接收流式数据...");
-
-  //     while (true) {
-  //       // 3. 一点点读数据
-  //       const { done, value } = await reader.read();
-  //       if (done) break;
-
-  //       // 4. 解码数据
-  //       const chunk = decoder.decode(value);
-
-  //       // 5. 解析 SSE 格式 (data: {...})
-  //       // 后端发来的是：data: {"content":"你好"}\n\n
-  //       const lines = chunk.split('\n');
-
-  //       for (const line of lines) {
-  //         if (line.startsWith('data: ')) {
-  //           const jsonStr = line.slice(6); // 去掉前面的 "data: "
-  //           if (jsonStr === '[DONE]') break;
-
-  //           try {
-  //             const dataObj = JSON.parse(jsonStr);
-  //             const content = dataObj.content;
-
-  //             if (content) {
-  //               console.log("收到片段:", content);
-  //               currentOutput += content;
-  //               // 每次收到新内容，就更新节点数据
-  //               updateNodeData(id, { output: currentOutput } );
-  //             }
-  //           } catch (e) {
-  //             console.error("解析出错", e);
-  //           }
-  //         }
-  //       }
-  //     }
-  //   } catch (error) {
-  //       console.log('请求失败', error);
-  //   }
-
-  // };
-
 
   return (
     // 外层容器：我已经帮你写好了一个带紫色边框的卡片样式
-    <div className="w-64 bg-white rounded-lg border-2 border-indigo-500 shadow-xl overflow-hidden">
+    <div className={`w-64 bg-white rounded-lg border-2 border-indigo-500 shadow-xl overflow-hidden transition-all duration-300 ${selected ? 'ring-8 ring-indigo-400/70 ring-offset-4 shadow-2xl shadow-indigo-500/60 scale-105' : ''}`}>
 
       {/* 标题栏 */}
       <div className="p-2 text-white flex items-center bg-indigo-500 bg-gradient-to-r">
@@ -95,11 +29,7 @@ const LLMNode = memo(({ id, data, isConnectable }: NodeProps) => {
       {/* 内容区域 */}
       <div className="p-4 bg-gray-50">
         <div className="text-xs text-gray-500 mb-2">模型选择</div>
-        <div className="text-sm font-bold text-gray-700">GPT-4o</div>
-        <div className="mt-2 text-xs text-gray-400">
-          {/* 这里展示从外面传进来的数据 */}
-          状态: {data.label}
-        </div>
+        <div className="text-sm font-bold text-gray-700" >{data.model || 'GPT-4o'}</div>
       </div>
       <button
         onClick={() => runNode(id)}

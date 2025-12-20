@@ -12,7 +12,7 @@ const Sidebar = () => {
   return (
     <div className="w-64 bg-white border-r border-gray-200 p-4 flex flex-col gap-4 shadow-lg z-10">
       <div className="text-lg font-bold text-gray-700 mb-2">工具箱</div>
-      
+
       {/* LLM 节点模版 */}
       <div
         className="h-16 border-2 border-indigo-500 rounded cursor-grab flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 transition-colors"
@@ -24,6 +24,14 @@ const Sidebar = () => {
       </div>
 
       {/* 可以在这里加更多节点，比如 Input, Output 等 */}
+      <div
+        className="h-16 border-2 border-pink-500 rounded cursor-grab flex items-center justify-center bg-pink-50 hover:bg-pink-100 mb-4"
+        onDragStart={(event) => onDragStart(event, 'startNode')}
+        draggable
+      >
+        <span className="mr-2">🏁</span>
+        <span className="font-medium text-pink-700">开始节点</span>
+      </div>
     </div>
   );
 };
