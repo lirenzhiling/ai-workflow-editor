@@ -184,8 +184,8 @@ const useStore = create<RFState>()(
     }),
         // 持久化配置,存到 LocalStorage
         {
-            name: "ai-flow-storage",//key
-            storage: createJSONStorage(() => localStorage),//存储方式:LocalStorage
+            name: "ai-flow-storage", //key
+            storage: createJSONStorage(() => localStorage), //存储方式:LocalStorage
             // 存储内容: 只存 nodes 和 edges
             partialize: (state) => ({
                 nodes: state.nodes,
