@@ -17,7 +17,8 @@ interface RFState {
     updateNodeData: (nodeId: string, newData: any) => void;
     addNode: (node: Node) => void;
     deleteNode: (nodeId: string) => void;
-    runNode: (nodeId: string) => Promise<void>;
+    runNode: (nodeId: string, isRecursive?: boolean) => Promise<void>;
+    runFlow: () => void;
 }
 
 // 在这里实现 useStore
@@ -77,18 +78,18 @@ const useStore = create<RFState>()(
                 nodes: [...get().nodes, node],
             });
         },
-        runNode: async (nodeId: string) => {
+        runNode: async (nodeId: string, isRecursive = false) => {
             // 找到该节点
             const node = get().nodes.find((n) => n.id === nodeId);
             if (!node) return;
 
-            // 通用逻辑：找上游节点 (不管是 LLM 还是 End，都需要找上游)
+            // 通用逻辑：找上游节点
             const incomingEdge = get().edges.find(edge => edge.target === nodeId);
             let sourceNode = incomingEdge
                 ? get().nodes.find(n => n.id === incomingEdge.source)
                 : null;
 
-            // 分支逻辑 ：如果是 【EndNode】
+            // 分支逻辑 ：如果是 EndNode
             if (node.type === 'endNode') {
                 if (!sourceNode) {
                     alert('End节点还没连线呢！');
@@ -100,9 +101,9 @@ const useStore = create<RFState>()(
                 });
                 // 标记为成功
                 get().updateNodeData(nodeId, { status: 'success' });
-                return; // <--- 结束
+                return; // 结束
             }
-            // 分支逻辑 ：如果是 【LLMNode】
+            // 分支逻辑 ：如果是 LLMNode
             if (node.type === 'llmNode') {
                 // 准备数据
                 let prompt = node.data.prompt || '';
@@ -144,7 +145,7 @@ const useStore = create<RFState>()(
                     });
                     if (!response.body) return;
 
-                    // 4. 拿到读取器 (Reader)
+                    // 拿到读取器 (Reader)
                     const reader = response.body?.getReader();
                     const decoder = new TextDecoder();
                     if (!reader) return;
@@ -154,14 +155,14 @@ const useStore = create<RFState>()(
                     // console.log("开始接收流式数据...");
 
                     while (true) {
-                        // 5. 一点点读数据
+                        // 一点点读数据
                         const { done, value } = await reader.read();
                         if (done) break;
 
-                        // 6. 解码数据
+                        // 解码数据
                         const chunk = decoder.decode(value);
 
-                        // 7. 解析 SSE 格式 (data: {...})
+                        // 解析 SSE 格式 (data: {...})
                         // 后端发来的是：data: {"content":"你好"}\n\n
                         const lines = chunk.split('\n');
 
@@ -186,13 +187,25 @@ const useStore = create<RFState>()(
                             }
                         }
                     }
-                    // 8. 标记状态：成功 (status = 'success')
+                    // 标记状态：成功 (status = 'success')
                     updateNodeData(nodeId, { status: 'success' });
                 } catch (error) {
                     console.log('请求失败', error);
                     // 标记状态：失败 (status = 'error')
                     updateNodeData(nodeId, { status: 'error', output: '❌ 运行失败' });
                 }
+            }
+            try {
+                // 只有当 isRecursive 为 true 时，才触发下游
+                if (isRecursive) {
+                    const outgoingEdges = get().edges.filter(edge => edge.source === nodeId);
+                    outgoingEdges.forEach(edge => {
+                        // 告诉下游，开启递归模式
+                        setTimeout(() => get().runNode(edge.target, true), 500);
+                    });
+                }
+            } catch (error) {
+                console.error("运行下游节点时出错", error);
             }
         },
         deleteNode: (nodeId: string) => {
@@ -206,7 +219,22 @@ const useStore = create<RFState>()(
                 // 3. 如果删除的是当前选中的节点，取消选中状态
                 selectedNodeId: get().selectedNodeId === nodeId ? null : get().selectedNodeId,
             });
-        }
+        },
+        runFlow: () => {
+            const { nodes, runNode } = get();
+            // 找到 Start 节点
+            const startNode = nodes.find(n => n.type === 'startNode');
+            if (!startNode) {
+                alert('找不到开始节点！');
+                return;
+            }
+
+            // TODO:清空所有节点的运行状态（为了体验更好）
+            // ... (如果要清空，可以遍历 nodes 把 output 设为空，这里先略过)
+
+            // 开启runNode持续执行
+            runNode(startNode.id, true);
+        },
     }),
         // 持久化配置,存到 LocalStorage
         {

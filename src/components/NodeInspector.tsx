@@ -103,8 +103,8 @@ const NodeInspector = () => {
             <textarea
               className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
               placeholder="请输入提示词..."
-              value={selectedNode.data.input || ''}
-              onChange={(e) => updateNodeData(selectedNode.id, { input: e.target.value })}
+              value={selectedNode.data.output || ''}
+              onChange={(e) => updateNodeData(selectedNode.id, { output: e.target.value })}
             />
           </div>
         )}

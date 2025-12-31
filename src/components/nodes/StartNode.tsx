@@ -22,8 +22,8 @@ const StartNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
                 <textarea
                     className="w-full h-20 text-sm border border-gray-300 rounded p-2 focus:ring-2 focus:ring-pink-400 outline-none resize-none"
                     placeholder="例如：输入你的名字，或者一个主题..."
-                    value={data.input || ''} // Start 节点的 input 就是用户的输入
-                    onChange={(e) => updateNodeData(id, { input: e.target.value })}
+                    value={data.output || ''} // Start 节点的 output 就是用户的输入
+                    onChange={(e) => updateNodeData(id, { output: e.target.value })}
                 />
             </div>
 
