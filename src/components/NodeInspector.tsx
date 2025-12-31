@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
 
 const NodeInspector = () => {
-  // 1. 从 Store 取出需要的数据和方法
+  // 从 Store 取出需要的数据和方法
   const { nodes, selectedNodeId, updateNodeData, runNode, deleteNode } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -39,9 +39,9 @@ const NodeInspector = () => {
         <input
           type="text"
           className="border rounded p-2 w-full text-sm mb-4"
-          // 1. 绑定值：显示当前节点的 label (注意判空，如果没有 label 就给个空字符串 '')
+          // 绑定值：显示当前节点的 label (注意判空，如果没有 label 就给个空字符串 '')
           value={selectedNode.data.label || ''}
-          // 2. 绑定事件：输入改变时，通知 Store 更新数据
+          // 绑定事件：输入改变时，通知 Store 更新数据
           onChange={(e) => {
             // 提示：调用 updateNodeData(节点ID, { label: 新值 })
             updateNodeData(selectedNode.id, { label: e.target.value });

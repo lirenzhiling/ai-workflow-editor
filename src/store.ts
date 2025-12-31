@@ -78,7 +78,7 @@ const useStore = create<RFState>()(
             });
         },
         runNode: async (nodeId: string) => {
-            // 1. 找到该节点
+            // 找到该节点
             const node = get().nodes.find((n) => n.id === nodeId);
             if (!node) return;
 
@@ -88,7 +88,7 @@ const useStore = create<RFState>()(
                 ? get().nodes.find(n => n.id === incomingEdge.source)
                 : null;
 
-            // 🚦 分支逻辑 A：如果是 【EndNode】
+            // 分支逻辑 ：如果是 【EndNode】
             if (node.type === 'endNode') {
                 if (!sourceNode) {
                     alert('End节点还没连线呢！');
@@ -102,9 +102,9 @@ const useStore = create<RFState>()(
                 get().updateNodeData(nodeId, { status: 'success' });
                 return; // <--- 结束
             }
-            // 🚦 分支逻辑 B：如果是 【LLMNode】
+            // 分支逻辑 ：如果是 【LLMNode】
             if (node.type === 'llmNode') {
-                // 2. 准备数据
+                // 准备数据
                 let prompt = node.data.prompt || '';
                 // 找到连接该节点的上游节点的边
                 // const incomingEdge = get().edges.find(edge => edge.target === nodeId);
@@ -123,7 +123,7 @@ const useStore = create<RFState>()(
 
 
 
-                // 3. 标记状态：开始运行 (status = 'running')
+                // 标记状态：开始运行 (status = 'running')
                 // 我们复用 updateNodeData 来更新状态
                 const { updateNodeData } = get();
                 updateNodeData(nodeId, { status: 'running', output: '' });

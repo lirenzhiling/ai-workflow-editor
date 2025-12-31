@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-// 1. 引入必要的零件
+// 引入必要的零件
 import { Handle, Position, NodeProps } from 'reactflow';
 
 import useStore from '../../store';
