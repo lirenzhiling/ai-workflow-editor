@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
 
 const NodeInspector = () => {
-  // 1. 从 Store 取出需要的数据和方法
+  // 从 Store 取出需要的数据和方法
   const { nodes, selectedNodeId, updateNodeData, runNode, deleteNode } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -39,9 +39,9 @@ const NodeInspector = () => {
         <input
           type="text"
           className="border rounded p-2 w-full text-sm mb-4"
-          // 1. 绑定值：显示当前节点的 label (注意判空，如果没有 label 就给个空字符串 '')
+          // 绑定值：显示当前节点的 label (注意判空，如果没有 label 就给个空字符串 '')
           value={selectedNode.data.label || ''}
-          // 2. 绑定事件：输入改变时，通知 Store 更新数据
+          // 绑定事件：输入改变时，通知 Store 更新数据
           onChange={(e) => {
             // 提示：调用 updateNodeData(节点ID, { label: 新值 })
             updateNodeData(selectedNode.id, { label: e.target.value });
@@ -108,11 +108,28 @@ const NodeInspector = () => {
             />
           </div>
         )}
+        {/* 节点种类为 endNode 时*/}
+        {selectedNode.type === 'endNode' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">输出内容</label>
+            <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
+              {selectedNode.data.output ? (
+                <span>{selectedNode.data.output}</span>
+              ) : (
+                <span className="text-gray-400 italic">等待运行...</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       {/* 删除节点 */}
       <div className="mt-4 pt-4 border-t border-gray-200">
         <button
-          onClick={() => deleteNode(selectedNode.id)}
+          onClick={() => {
+            if (window.confirm('确定要删除这个节点吗？')) {
+              deleteNode(selectedNode.id);
+            }
+          }}
           className="w-full py-2 text-red-600 border border-red-200 bg-red-50 rounded hover:bg-red-100 transition-colors text-sm font-medium"
         >
           🗑️ 删除选中节点

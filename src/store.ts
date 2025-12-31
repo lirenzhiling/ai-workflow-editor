@@ -17,7 +17,8 @@ interface RFState {
     updateNodeData: (nodeId: string, newData: any) => void;
     addNode: (node: Node) => void;
     deleteNode: (nodeId: string) => void;
-    runNode: (nodeId: string) => Promise<void>;
+    runNode: (nodeId: string, isRecursive?: boolean) => Promise<void>;
+    runFlow: () => void;
 }
 
 // 在这里实现 useStore
@@ -77,96 +78,134 @@ const useStore = create<RFState>()(
                 nodes: [...get().nodes, node],
             });
         },
-        runNode: async (nodeId: string) => {
-            // 1. 找到该节点
+        runNode: async (nodeId: string, isRecursive = false) => {
+            // 找到该节点
             const node = get().nodes.find((n) => n.id === nodeId);
             if (!node) return;
-            // 2. 准备数据
-            let prompt = node.data.prompt || '';
-            // 找到连接该节点的上游节点的边
+
+            // 通用逻辑：找上游节点
             const incomingEdge = get().edges.find(edge => edge.target === nodeId);
-            if (incomingEdge) {
-                // 从这个变找到上游节点
-                const sourceNode = get().nodes.find(n => n.id === incomingEdge.source);
-                if (sourceNode && sourceNode.data.output) {
-                    console.log(`🔗 成功连接！接收到上游数据: ${sourceNode.data.output.slice(0, 10)}...`);
-                    prompt = `【上文输入】：\n${sourceNode.data.output}\n\n【我的指令】：\n${prompt}`;
+            let sourceNode = incomingEdge
+                ? get().nodes.find(n => n.id === incomingEdge.source)
+                : null;
+
+            // 分支逻辑 ：如果是 EndNode
+            if (node.type === 'endNode') {
+                if (!sourceNode) {
+                    alert('End节点还没连线呢！');
+                    return;
                 }
-            }
-            if (!prompt.trim()) {
-                alert('节点没有输入，无法运行！');
-                return;
-            }
-
-            // 3. 标记状态：开始运行 (status = 'running')
-            // 我们复用 updateNodeData 来更新状态
-            const { updateNodeData } = get();
-            updateNodeData(nodeId, { status: 'running', output: '' });
-            const apiUrl = process.env.API_URL || 'http://localhost:4000/api/chat';
-            try {
-                console.log("发送内容：" + prompt);
-
-                const response = await fetch(apiUrl, {
-                    method: 'post',
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        messages: [
-                            { role: 'user', content: prompt }
-                        ]
-                    })
+                // 直接把上游的 output 搬过来
+                get().updateNodeData(nodeId, {
+                    output: sourceNode.data.output || '上游节点还没有输出哦~'
                 });
-                if (!response.body) return;
+                // 标记为成功
+                get().updateNodeData(nodeId, { status: 'success' });
+                return; // 结束
+            }
+            // 分支逻辑 ：如果是 LLMNode
+            if (node.type === 'llmNode') {
+                // 准备数据
+                let prompt = node.data.prompt || '';
+                // 找到连接该节点的上游节点的边
+                // const incomingEdge = get().edges.find(edge => edge.target === nodeId);
+                if (incomingEdge) {
+                    // 从这个变找到上游节点
+                    sourceNode = get().nodes.find(n => n.id === incomingEdge.source);
+                    if (sourceNode && sourceNode.data.output) {
+                        console.log(`🔗 成功连接！接收到上游数据: ${sourceNode.data.output.slice(0, 10)}...`);
+                        prompt = `【上文输入】：\n${sourceNode.data.output}\n\n【我的指令】：\n${prompt}`;
+                    }
+                }
+                if (!prompt.trim()) {
+                    alert('节点没有输入，无法运行！');
+                    return;
+                }
 
-                // 4. 拿到读取器 (Reader)
-                const reader = response.body?.getReader();
-                const decoder = new TextDecoder();
-                if (!reader) return;
-                // 临时存一下当前的完整句子
-                let currentOutput = '';
 
-                // console.log("开始接收流式数据...");
 
-                while (true) {
-                    // 5. 一点点读数据
-                    const { done, value } = await reader.read();
-                    if (done) break;
+                // 标记状态：开始运行 (status = 'running')
+                // 我们复用 updateNodeData 来更新状态
+                const { updateNodeData } = get();
+                updateNodeData(nodeId, { status: 'running', output: '' });
+                const apiUrl = process.env.API_URL || 'http://localhost:4000/api/chat';
+                try {
+                    console.log("发送内容：" + prompt);
 
-                    // 6. 解码数据
-                    const chunk = decoder.decode(value);
+                    const response = await fetch(apiUrl, {
+                        method: 'post',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'user', content: prompt }
+                            ]
+                        })
+                    });
+                    if (!response.body) return;
 
-                    // 7. 解析 SSE 格式 (data: {...})
-                    // 后端发来的是：data: {"content":"你好"}\n\n
-                    const lines = chunk.split('\n');
+                    // 拿到读取器 (Reader)
+                    const reader = response.body?.getReader();
+                    const decoder = new TextDecoder();
+                    if (!reader) return;
+                    // 临时存一下当前的完整句子
+                    let currentOutput = '';
 
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const jsonStr = line.slice(6); // 去掉前面的 "data: "
-                            if (jsonStr === '[DONE]') break;
+                    // console.log("开始接收流式数据...");
 
-                            try {
-                                const dataObj = JSON.parse(jsonStr);
-                                const content = dataObj.content;
+                    while (true) {
+                        // 一点点读数据
+                        const { done, value } = await reader.read();
+                        if (done) break;
 
-                                if (content) {
-                                    // console.log("收到片段:", content);
-                                    currentOutput += content;
-                                    // 每次收到新内容，就更新节点数据
-                                    updateNodeData(nodeId, { output: currentOutput });
+                        // 解码数据
+                        const chunk = decoder.decode(value);
+
+                        // 解析 SSE 格式 (data: {...})
+                        // 后端发来的是：data: {"content":"你好"}\n\n
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6); // 去掉前面的 "data: "
+                                if (jsonStr === '[DONE]') break;
+
+                                try {
+                                    const dataObj = JSON.parse(jsonStr);
+                                    const content = dataObj.content;
+
+                                    if (content) {
+                                        // console.log("收到片段:", content);
+                                        currentOutput += content;
+                                        // 每次收到新内容，就更新节点数据
+                                        updateNodeData(nodeId, { output: currentOutput });
+                                    }
+                                } catch (e) {
+                                    console.error("解析出错", e);
                                 }
-                            } catch (e) {
-                                console.error("解析出错", e);
                             }
                         }
                     }
+                    // 标记状态：成功 (status = 'success')
+                    updateNodeData(nodeId, { status: 'success' });
+                } catch (error) {
+                    console.log('请求失败', error);
+                    // 标记状态：失败 (status = 'error')
+                    updateNodeData(nodeId, { status: 'error', output: '❌ 运行失败' });
                 }
-                // 8. 标记状态：成功 (status = 'success')
-                updateNodeData(nodeId, { status: 'success' });
+            }
+            try {
+                // 只有当 isRecursive 为 true 时，才触发下游
+                if (isRecursive) {
+                    const outgoingEdges = get().edges.filter(edge => edge.source === nodeId);
+                    outgoingEdges.forEach(edge => {
+                        // 告诉下游，开启递归模式
+                        setTimeout(() => get().runNode(edge.target, true), 500);
+                    });
+                }
             } catch (error) {
-                console.log('请求失败', error);
-                // 标记状态：失败 (status = 'error')
-                updateNodeData(nodeId, { status: 'error', output: '❌ 运行失败' });
+                console.error("运行下游节点时出错", error);
             }
         },
         deleteNode: (nodeId: string) => {
@@ -180,12 +219,27 @@ const useStore = create<RFState>()(
                 // 3. 如果删除的是当前选中的节点，取消选中状态
                 selectedNodeId: get().selectedNodeId === nodeId ? null : get().selectedNodeId,
             });
-        }
+        },
+        runFlow: () => {
+            const { nodes, runNode } = get();
+            // 找到 Start 节点
+            const startNode = nodes.find(n => n.type === 'startNode');
+            if (!startNode) {
+                alert('找不到开始节点！');
+                return;
+            }
+
+            // TODO:清空所有节点的运行状态（为了体验更好）
+            // ... (如果要清空，可以遍历 nodes 把 output 设为空，这里先略过)
+
+            // 开启runNode持续执行
+            runNode(startNode.id, true);
+        },
     }),
         // 持久化配置,存到 LocalStorage
         {
-            name: "ai-flow-storage", //key
-            storage: createJSONStorage(() => localStorage), //存储方式:LocalStorage
+            name: "ai-flow-storage",//key
+            storage: createJSONStorage(() => localStorage),//存储方式:LocalStorage
             // 存储内容: 只存 nodes 和 edges
             partialize: (state) => ({
                 nodes: state.nodes,

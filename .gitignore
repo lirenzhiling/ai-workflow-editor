@@ -1,10 +1,10 @@
-# 依赖包 (太大了，可以通过 npm install 自己下)
+# 依赖包 (可以通过 npm install 下)
 node_modules/
 
-# 打包产物 (可以随时通过 npm run build 生成，不需要存)
+# 打包产物 (可以通过 npm run build 生成)
 dist/
 
-# 环境变量 (里面可能有密码，不能传)
+# 环境变量
 .env
 .DS_Store
 

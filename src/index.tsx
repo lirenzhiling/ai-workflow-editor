@@ -4,7 +4,7 @@ import FlowEditor from "./components/FlowEditor";
 
 const App = () => {
     return (
-       // 用 Tailwind 的类名：h-screen(全屏高), flex(布局), bg-gray-100(背景灰)
+        // Tailwind 的类名：h-screen(全屏高), flex(布局), bg-gray-100(背景灰)
         <div className="h-screen w-screen">
             <FlowEditor />
         </div>
