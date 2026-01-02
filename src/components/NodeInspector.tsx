@@ -3,6 +3,16 @@ import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
 
+import LLMConfig from './inspector/LLMConfig';
+import StartConfig from './inspector/StartConfig';
+import EndConfig from './inspector/EndConfig';
+
+const configComponents: Record<string, React.FC<any>> = {
+  startNode: StartConfig,
+  llmNode: LLMConfig,
+  endNode: EndConfig,
+};
+
 const NodeInspector = () => {
   // 从 Store 取出需要的数据和方法
   const { nodes, selectedNodeId, updateNodeData, runNode, deleteNode } = useStore(
@@ -24,6 +34,9 @@ const NodeInspector = () => {
   if (!selectedNode) {
     return <div className="p-4 text-gray-500 text-sm">请点击画布上的节点进行配置</div>;
   }
+
+  // 动态获取对应的配置组件
+  const ConfigComponent = configComponents[selectedNode.type || ''];
 
   return (
     // 右侧面板容器
@@ -48,79 +61,19 @@ const NodeInspector = () => {
           }}
         />
 
-        {/* 节点种类为 llmNode 时*/}
-        {selectedNode.type === 'llmNode' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">模型型号</label>
-            <select
-              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-              value={selectedNode.data.model || 'GPT-4o'}
-              onChange={(e) => updateNodeData(selectedNode.id, { model: e.target.value })}
-            >
-              <option value="Deepseek">Deepseek</option>
-              <option value="GPT-4o">GPT-4o</option>
-              <option value="GPT-3.5">GPT-3.5</option>
-              <option value="Claude-3">Claude 3.5 Sonnet</option>
-            </select>
-            <textarea
-              className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
-              placeholder="请输入提示词..."
-              value={selectedNode.data.prompt || ''}
-              onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })}
+        <div className="flex-1 overflow-y-auto">
+          {ConfigComponent ? (
+            <ConfigComponent
+              // 👇 把所有需要的参数都传进去
+              nodeId={selectedNode.id}
+              data={selectedNode.data}
+              onChange={updateNodeData}
+              runNode={runNode}
             />
-            <div className="border-t border-gray-200 my-4"></div>
-            <div className="mt-4 mb-2">
-              <button
-                onClick={() => runNode(selectedNode.id)}
-                disabled={selectedNode.data.status === 'running'}
-                className={`w-full py-2 rounded text-white font-medium transition-colors
-              ${selectedNode.data.status === 'running' ? 'bg-indigo-300' : 'bg-indigo-600 hover:bg-indigo-700'}
-            `}
-              >
-                {selectedNode.data.status === 'running' ? '🚀 正在思考...' : '▶ 运行'}
-              </button>
-            </div>
-            {/* 运行结果展示区 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📺 运行结果
-              </label>
-              <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
-                {selectedNode.data.output ? (
-                  <span>{selectedNode.data.output}</span>
-                ) : (
-                  <span className="text-gray-400 italic">等待运行...</span>
-                )}
-              </div>
-
-            </div>
-          </div>
-        )}
-        {/* 节点种类为 startNode 时*/}
-        {selectedNode.type === 'startNode' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">输入内容</label>
-            <textarea
-              className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
-              placeholder="请输入提示词..."
-              value={selectedNode.data.output || ''}
-              onChange={(e) => updateNodeData(selectedNode.id, { output: e.target.value })}
-            />
-          </div>
-        )}
-        {/* 节点种类为 endNode 时*/}
-        {selectedNode.type === 'endNode' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">输出内容</label>
-            <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
-              {selectedNode.data.output ? (
-                <span>{selectedNode.data.output}</span>
-              ) : (
-                <span className="text-gray-400 italic">等待运行...</span>
-              )}
-            </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-gray-400 italic">该节点类型暂无配置项</div>
+          )}
+        </div>
       </div>
       {/* 删除节点 */}
       <div className="mt-4 pt-4 border-t border-gray-200">
