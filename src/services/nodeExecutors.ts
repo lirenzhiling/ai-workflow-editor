@@ -21,9 +21,9 @@ export const executeEndNode = async ({ nodeId, sourceNode, updateNodeData }: Exe
 
     // 直接用 sourceNode
     updateNodeData(nodeId, {
-        output: sourceNode.data.output || '上游节点还没有输出哦~'
+        output: sourceNode.data.output || '上游节点还没有输出哦~',
+        status: 'success'
     });
-    updateNodeData(nodeId, { status: 'success' });
 };
 
 // LLM 节点的逻辑
