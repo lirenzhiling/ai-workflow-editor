@@ -44,3 +44,24 @@ useStore(
 // 把 transition-all 改成 transition-shadow
 className={`... transition-shadow duration-200 ...`}
 ```
+
+### 2.2.start节点无法输入
+
+重构时，传参漏传了nodeId，然后随便用了个key，才发现不能输入了
+
+```tsx
+//src/components/inspector/StartConfig.tsx
+type Props = {
+    nodeId: string;
+    data: any;
+    onChange: (key: string, value: any) => void;
+};
+```
+
+
+
+## 三、代码重构
+
+### 3.1.将代码分到不同文件便于维护
+
+随着功能增加，单文件已经 Hold 不住了。为了长线作战，我把`store.ts`和 `components\NodeInspector.tsx` 逻辑拆分到了  `services`和`components\inspector`里 。（嗯对，就是把那些if-else啥的分出去了）
