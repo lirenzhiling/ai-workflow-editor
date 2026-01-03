@@ -1,7 +1,7 @@
 import React from 'react';
 
 type Props = {
-    data: { output?: string };
+    data: any;
 };
 
 const EndConfig = ({ data }: Props) => {

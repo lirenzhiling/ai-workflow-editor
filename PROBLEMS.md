@@ -45,6 +45,19 @@ useStore(
 className={`... transition-shadow duration-200 ...`}
 ```
 
+### 2.2.start节点无法输入
+
+重构时，传参漏传了nodeId，然后随便用了个key，才发现不能输入了
+
+```tsx
+//src/components/inspector/StartConfig.tsx
+type Props = {
+    nodeId: string;
+    data: any;
+    onChange: (key: string, value: any) => void;
+};
+```
+
 
 
 ## 三、代码重构
