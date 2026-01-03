@@ -32,7 +32,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
     let prompt = node.data.prompt || '';
 
     if (sourceNode && sourceNode.data.output) {
-        console.log(`成功连接！接收到上游数据: ${sourceNode.data.output.slice(0, 10)}...`);
+        console.log(`🔗 成功连接！接收到上游数据: ${sourceNode.data.output.slice(0, 10)}...`);
         prompt = `【上文输入】：\n${sourceNode.data.output}\n\n【我的指令】：\n${prompt}`;
     }
     if (!prompt.trim()) {
