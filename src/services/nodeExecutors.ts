@@ -12,6 +12,16 @@ interface ExecutionContext {
     sourceNode: Node | null;
 }
 
+// 配置 API 基础路径
+const apiBaseUrl = process.env.API_URL || 'http://localhost:4000/api';
+export const config = {
+    api: {
+        baseUrl: apiBaseUrl,
+        image: `${apiBaseUrl}/image`,
+        chat: `${apiBaseUrl}/chat`,
+    },
+};
+
 // End 节点的逻辑
 export const executeEndNode = async ({ nodeId, sourceNode, updateNodeData }: ExecutionContext) => {
     if (!sourceNode) {
@@ -32,7 +42,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
     let prompt = node.data.prompt || '';
 
     if (sourceNode && sourceNode.data.output) {
-        console.log(`🔗 成功连接！接收到上游数据: ${sourceNode.data.output.slice(0, 10)}...`);
+        console.log(`成功连接！接收到上游数据: ${sourceNode.data.output.slice(0, 10)}...`);
         prompt = `【上文输入】：\n${sourceNode.data.output}\n\n【我的指令】：\n${prompt}`;
     }
     if (!prompt.trim()) {
@@ -46,7 +56,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
     // 我们复用 updateNodeData 来更新状态
     // const { updateNodeData } = get();
     updateNodeData(nodeId, { status: 'running', output: '' });
-    const apiUrl = process.env.API_URL || 'http://localhost:4000/api/chat';
+    const apiUrl = config.api.chat;
     try {
         console.log("发送内容：" + prompt);
 
@@ -110,7 +120,51 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
     } catch (error) {
         console.log('请求失败', error);
         // 标记状态：失败 (status = 'error')
-        updateNodeData(nodeId, { status: 'error', output: '❌ 运行失败' });
+        updateNodeData(nodeId, { status: 'error', output: '运行失败' });
+    }
+};
+
+// 定义绘图节点的执行逻辑
+export const executeImageGenNode = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
+    // 拼接 Prompt：上游输出（可选）+自己的描述
+    const upstreamText = sourceNode?.data.output || '';
+    const localPrompt = node.data.output || '';
+
+    const finalPrompt = `${upstreamText} ${localPrompt}`.trim();
+
+    if (!finalPrompt) {
+        alert('给点图像生成的描述吧！');
+        return;
+    }
+
+    // 标记为运行中
+    updateNodeData(nodeId, { status: 'running', output: '' });
+
+    try {
+        // 调用刚才写的后端接口
+        // 这里的 replace 是为了复用 Webpack 注入的 API_URL 基础路径
+        const apiUrl = config.api.image;
+        console.log(process.env.API_URL);
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: finalPrompt })
+        });
+
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        // 成功
+        updateNodeData(nodeId, {
+            status: 'success',
+            output: data.imageUrl
+        });
+
+    } catch (error) {
+        console.error(error);
+        updateNodeData(nodeId, { status: 'error', output: '绘图失败，请检查后端日志' });
     }
 };
 
@@ -118,5 +172,6 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
 export const executors: Record<string, Function> = {
     endNode: executeEndNode,
     llmNode: executeLLMNode,
+    startNode: executeImageGenNode,
     // 以后加新节点，在这里注册一行
 };
