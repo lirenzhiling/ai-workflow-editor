@@ -1,0 +1,60 @@
+import React from 'react';
+
+type Props = {
+    nodeId: string;
+    data: any;
+    onChange: (key: string, value: any) => void;
+    runNode: (id: string) => void;
+};
+
+const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
+    return (
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">模型型号</label>
+            <select
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                value={data.model || 'GPT-4o'}
+                onChange={(e) => onChange(nodeId, { model: e.target.value })}
+            >
+                <option value="Deepseek">Deepseek</option>
+                <option value="GPT-4o">GPT-4o</option>
+                <option value="GPT-3.5">GPT-3.5</option>
+                <option value="Claude-3">Claude 3.5 Sonnet</option>
+            </select>
+            <textarea
+                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
+                placeholder="请输入提示词..."
+                value={data.prompt || ''}
+                onChange={(e) => onChange(nodeId, { prompt: e.target.value })}
+            />
+            <div className="border-t border-gray-200 my-4"></div>
+            <div className="mt-4 mb-2">
+                <button
+                    onClick={() => runNode(nodeId)}
+                    disabled={data.status === 'running'}
+                    className={`w-full py-2 rounded text-white font-medium transition-colors
+              ${data.status === 'running' ? 'bg-indigo-300' : 'bg-indigo-600 hover:bg-indigo-700'}
+            `}
+                >
+                    {data.status === 'running' ? '🚀 正在思考...' : '▶ 运行'}
+                </button>
+            </div>
+            {/* 运行结果展示区 */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📺 运行结果
+                </label>
+                <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
+                    {data.output ? (
+                        <span>{data.output}</span>
+                    ) : (
+                        <span className="text-gray-400 italic">等待运行...</span>
+                    )}
+                </div>
+
+            </div>
+        </div>
+    );
+};
+
+export default LLMConfig;
