@@ -64,7 +64,7 @@ const NodeInspector = () => {
         <div className="flex-1 overflow-y-auto">
           {ConfigComponent ? (
             <ConfigComponent
-              // 👇 把所有需要的参数都传进去
+              // 把所有需要的参数都传进去
               nodeId={selectedNode.id}
               data={selectedNode.data}
               onChange={updateNodeData}

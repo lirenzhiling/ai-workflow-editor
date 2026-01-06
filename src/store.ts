@@ -96,14 +96,13 @@ const useStore = create<RFState>()(
                 //打包数据
                 const handler = executors[node.type || ''];
                 if (handler) {
-                    // 把 sourceNode 传进去！
                     await handler({
                         nodeId,
                         node,      // 把当前节点也传进去，方便取 data
                         nodes: get().nodes,
                         edges: get().edges,
                         updateNodeData: get().updateNodeData,
-                        sourceNode // 👈 喂给它！
+                        sourceNode
                     });
                 } else {
                     console.warn(`未知的节点类型: ${node.type}`);

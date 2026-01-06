@@ -50,10 +50,18 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
         return;
     }
 
+    const func = node.data.func || 'chat';
+    console.log(func);
 
+    if (func === 'image') {
+        console.log("图像生成");
+
+        await executeImage({ nodeId, node, sourceNode, nodes: [], edges: [], updateNodeData });
+        return;
+    }
 
     // 标记状态：开始运行 (status = 'running')
-    // 我们复用 updateNodeData 来更新状态
+    // 复用 updateNodeData 来更新状态
     // const { updateNodeData } = get();
     updateNodeData(nodeId, { status: 'running', output: '' });
     const apiUrl = config.api.chat;
@@ -124,8 +132,8 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
     }
 };
 
-// 定义绘图节点的执行逻辑
-export const executeImageGenNode = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
+// 绘图执行逻辑
+export const executeImage = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
     // 拼接 Prompt：上游输出（可选）+自己的描述
     const upstreamText = sourceNode?.data.output || '';
     const localPrompt = node.data.output || '';
@@ -144,7 +152,6 @@ export const executeImageGenNode = async ({ nodeId, node, sourceNode, updateNode
         // 调用刚才写的后端接口
         // 这里的 replace 是为了复用 Webpack 注入的 API_URL 基础路径
         const apiUrl = config.api.image;
-        console.log(process.env.API_URL);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -172,6 +179,5 @@ export const executeImageGenNode = async ({ nodeId, node, sourceNode, updateNode
 export const executors: Record<string, Function> = {
     endNode: executeEndNode,
     llmNode: executeLLMNode,
-    startNode: executeImageGenNode,
     // 以后加新节点，在这里注册一行
 };

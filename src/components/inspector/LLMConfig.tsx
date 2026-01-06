@@ -21,6 +21,15 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
                 <option value="GPT-3.5">GPT-3.5</option>
                 <option value="Claude-3">Claude 3.5 Sonnet</option>
             </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">功能选择</label>
+            <select
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                value={data.func || 'chat'}
+                onChange={(e) => onChange(nodeId, { func: e.target.value })}
+            >
+                <option value="chat">文字聊天</option>
+                <option value="image">图片生成</option>
+            </select>
             <textarea
                 className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
                 placeholder="请输入提示词..."
