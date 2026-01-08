@@ -10,7 +10,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 p-4 flex flex-col gap-4 shadow-lg z-10">
+    <div className="w-full bg-white p-4 flex flex-col gap-4 z-10">
       <div className="text-lg font-bold text-gray-700 mb-2">工具箱</div>
 
       {/* 开始节点模版 */}

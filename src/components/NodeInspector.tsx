@@ -40,7 +40,7 @@ const NodeInspector = () => {
 
   return (
     // 右侧面板容器
-    <div className="w-80 bg-white border-l border-gray-200 p-4 shadow-xl z-20 flex flex-col h-full">
+    <div className="w-full h-full bg-white p-4 z-20 flex flex-col">
       <div className="flex-1 overflow-y-auto">
         <div className="font-bold mb-4 text-gray-700">⚙️ 节点配置</div>
 

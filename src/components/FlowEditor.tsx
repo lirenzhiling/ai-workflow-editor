@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
   // 基础组件
   Background,
@@ -29,12 +29,22 @@ const nodeTypes = {
 // ==========================================
 const FlowEditorContent = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  //让工具栏和节点配置面板可调节宽度
+  const [sidebarWidth, setSidebarWidth] = useState(250);   // 工具栏默认宽度
+  const [inspectorWidth, setInspectorWidth] = useState(300); // 节点配置默认宽度
+  const isResizingLeft = useRef(false);
+  const isResizingRight = useRef(false);
+
+  const lastUpdateTime = useRef(0);
+
   // 从 Store 取出状态和方法
   // selector 模式：只监听我们需要的数据，避免不必要的渲染
-  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, addNode, setSelectedNode, runFlow } = useStore(
+  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, addNode, setSelectedNode, selectedNodeId, runFlow } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
       edges: state.edges,
+      selectedNodeId: state.selectedNodeId,
       onNodesChange: state.onNodesChange,
       onEdgesChange: state.onEdgesChange,
       onConnect: state.onConnect,
@@ -43,6 +53,83 @@ const FlowEditorContent = () => {
       runFlow: state.runFlow,
     }))
   );
+
+  // 节点id变了自动打开节点配置面板
+  useEffect(() => {
+    if (selectedNodeId && inspectorWidth === 0) {
+      setInspectorWidth(300);
+    }
+  }, [selectedNodeId]);
+
+  //拖拽监听
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // 获取当前时间
+      const now = Date.now();
+
+      // 节流
+      // 只有当距离上次更新超过 20ms时才执行
+      // 这个频率足够防止ResizeObserver报错
+      if (now - lastUpdateTime.current < 20) {
+        return;
+      }
+
+      // 更新时间戳
+      lastUpdateTime.current = now;
+
+      // 处理左侧
+      if (isResizingLeft.current) {
+        const newWidth = e.clientX;
+        if (newWidth > 50 && newWidth < 600) {
+          setSidebarWidth(newWidth);
+        }
+      }
+
+      // 处理右侧
+      if (isResizingRight.current) {
+        const windowWidth = window.innerWidth;
+        const newWidth = windowWidth - e.clientX;
+        if (newWidth > 50 && newWidth < 800) {
+          setInspectorWidth(newWidth);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      isResizingLeft.current = false;
+      isResizingRight.current = false;
+      document.body.style.cursor = 'default';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  // 开始拖拽左边
+  const startResizeLeft = (e: React.MouseEvent) => {
+    isResizingLeft.current = true;
+    e.preventDefault(); // 阻止默认行为（选中文本、原生拖拽等）
+    e.stopPropagation(); // 阻止事件冒泡，保险
+    document.body.style.cursor = 'col-resize'; // 鼠标变成双箭头
+  };
+
+  // 开始拖拽右边
+  const startResizeRight = (e: React.MouseEvent) => {
+    isResizingRight.current = true;
+    e.preventDefault(); // 阻止默认行为（选中文本、原生拖拽等）
+    e.stopPropagation(); // 阻止事件冒泡，保险
+    document.body.style.cursor = 'col-resize';
+  };
+
+  // 快捷开关：点击按钮时，如果在展开就收起(设为0)，如果在收起就恢复默认
+  const toggleSidebar = () => setSidebarWidth(prev => prev === 0 ? 250 : 0);
+  const toggleInspector = () => setInspectorWidth(prev => prev === 0 ? 300 : 0);
+
   // 获取 ReactFlow 实例（用于坐标转换）
   const { project } = useReactFlow();
   // 处理“拖拽结束” (Drop)
@@ -90,7 +177,7 @@ const FlowEditorContent = () => {
 
         <button
           onClick={runFlow}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-md flex items-center gap-2"
+          className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors shadow-md flex items-center gap-2"
         >
           <span>🚀</span>
           <span>一键全局运行</span>
@@ -99,8 +186,21 @@ const FlowEditorContent = () => {
 
       <div className='flex-1 flex w-full overflow-hidden'>
         {/* 左侧：工具箱 */}
-        <Sidebar />
-        {/* 右侧：画布 */}
+        <div
+          className="relative flex flex-col border-r border-gray-200 shadow-lg"
+          style={{ width: sidebarWidth, display: sidebarWidth === 0 ? 'none' : 'flex' }}
+        >
+          <Sidebar />
+
+          {/* 左侧拖拽手柄*/}
+          <div
+            onMouseDown={startResizeLeft}
+            className="absolute top-0 -right-1 w-2 h-full cursor-col-resize hover:bg-green-500 transition-colors z-20 group"
+          >
+
+          </div>
+        </div>
+        {/* 中间：画布 */}
         {/* ref 绑定到这里，用于计算位置 */}
         <div className="flex-1 h-full" ref={reactFlowWrapper}>
           <ReactFlow
@@ -120,7 +220,21 @@ const FlowEditorContent = () => {
             <MiniMap />
           </ReactFlow>
         </div>
-        <NodeInspector />
+        {/* 右侧：工具箱 */}
+        <div
+          className="relative flex flex-col border-l border-gray-200 shadow-lg"
+          style={{ width: inspectorWidth, display: inspectorWidth === 0 ? 'none' : 'flex' }}
+        >
+          <NodeInspector />
+
+          {/* 右侧拖拽手柄*/}
+          <div
+            onMouseDown={startResizeRight}
+            className="absolute top-0 -left-1 w-2 h-full cursor-col-resize hover:bg-green-500 transition-colors z-20 group"
+          >
+
+          </div>
+        </div>
       </div>
     </div>
   )
