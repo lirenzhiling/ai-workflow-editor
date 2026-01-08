@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import remToPx from '../utils/style';
 import ReactFlow, {
   // 基础组件
   Background,
@@ -32,6 +34,7 @@ const FlowEditorContent = () => {
 
   //让工具栏和节点配置面板可调节宽度
   const [sidebarWidth, setSidebarWidth] = useState(250);   // 工具栏默认宽度
+  const [sidebarOffsetX, setSidebarOffsetX] = useState(0);
   const [inspectorWidth, setInspectorWidth] = useState(300); // 节点配置默认宽度
   const isResizingLeft = useRef(false);
   const isResizingRight = useRef(false);
@@ -79,7 +82,7 @@ const FlowEditorContent = () => {
 
       // 处理左侧
       if (isResizingLeft.current) {
-        const newWidth = e.clientX;
+        const newWidth = e.clientX + remToPx(0.25); // 考虑边框宽度
         if (newWidth > 50 && newWidth < 600) {
           setSidebarWidth(newWidth);
         }
@@ -88,7 +91,7 @@ const FlowEditorContent = () => {
       // 处理右侧
       if (isResizingRight.current) {
         const windowWidth = window.innerWidth;
-        const newWidth = windowWidth - e.clientX;
+        const newWidth = windowWidth - e.clientX + remToPx(0.25); // 考虑边框宽度
         if (newWidth > 50 && newWidth < 800) {
           setInspectorWidth(newWidth);
         }
@@ -187,17 +190,25 @@ const FlowEditorContent = () => {
       <div className='flex-1 flex w-full overflow-hidden'>
         {/* 左侧：工具箱 */}
         <div
-          className="relative flex flex-col border-r border-gray-200 shadow-lg"
-          style={{ width: sidebarWidth, display: sidebarWidth === 0 ? 'none' : 'flex' }}
+          className="relative flex flex-col w-full border-r border-gray-200 shadow-lg"
+          style={{ width: sidebarWidth }}
         >
-          <Sidebar />
+          <div className="w-full h-full overflow-hidden bg-white">
+            <Sidebar />
+          </div>
+
 
           {/* 左侧拖拽手柄*/}
           <div
             onMouseDown={startResizeLeft}
-            className="absolute top-0 -right-1 w-2 h-full cursor-col-resize hover:bg-green-500 transition-colors z-20 group"
+            className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-green-500 transition-colors z-20 group"
           >
-
+          </div>
+          <div
+            className="absolute top-1/2 -right-5 w-5 h-10 border border-gray-200 bg-white cursor-pointer flex items-center justify-center z-20 shadow-[1px_0px_4px_0px_rgba(0,0,0,0.1)] group">
+            <ChevronRight
+              onClick={toggleSidebar}
+              className="text-gray-400 group-hover:text-green-500 z-20" />
           </div>
         </div>
         {/* 中间：画布 */}
@@ -223,16 +234,24 @@ const FlowEditorContent = () => {
         {/* 右侧：工具箱 */}
         <div
           className="relative flex flex-col border-l border-gray-200 shadow-lg"
-          style={{ width: inspectorWidth, display: inspectorWidth === 0 ? 'none' : 'flex' }}
+          style={{ width: inspectorWidth }}
         >
-          <NodeInspector />
+          <div className="w-full h-full overflow-hidden bg-white">
+            <NodeInspector />
+          </div>
 
           {/* 右侧拖拽手柄*/}
           <div
             onMouseDown={startResizeRight}
-            className="absolute top-0 -left-1 w-2 h-full cursor-col-resize hover:bg-green-500 transition-colors z-20 group"
+            className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-green-500 transition-colors z-20 group"
           >
 
+          </div>
+          <div
+            className="absolute top-1/2 -left-5 w-5 h-10 border border-gray-200 bg-white cursor-pointer flex items-center justify-center z-20 shadow-[-1px_0px_4px_0px_rgba(0,0,0,0.1)] group">
+            <ChevronLeft
+              onClick={toggleInspector}
+              className="text-gray-400 group-hover:text-green-500 z-20" />
           </div>
         </div>
       </div>
