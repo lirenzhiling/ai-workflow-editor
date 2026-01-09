@@ -6,6 +6,7 @@ import useStore from '../store';
 import LLMConfig from './inspector/LLMConfig';
 import StartConfig from './inspector/StartConfig';
 import EndConfig from './inspector/EndConfig';
+import { Settings } from 'lucide-react';
 
 const configComponents: Record<string, React.FC<any>> = {
   startNode: StartConfig,
@@ -42,8 +43,10 @@ const NodeInspector = () => {
     // 右侧面板容器
     <div className="w-full h-full bg-white p-4 z-20 flex flex-col">
       <div className="flex-1 overflow-y-auto">
-        <div className="font-bold mb-4 text-gray-700">⚙️ 节点配置</div>
-
+        <div className='mb-4'>
+          <Settings className="inline-block mr-2 text-gray-500" />
+          <div className="font-bold inline-block text-gray-700">节点配置</div>
+        </div>
         {/* 调试信息：让你确认选对了没 */}
         <div className="text-xs text-gray-400 mb-4">ID: {selectedNode.id}</div>
 

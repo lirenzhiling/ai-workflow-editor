@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CirclePlay } from 'lucide-react';
+import workflow from "../assets/workflow.svg";
 import remToPx from '../utils/style';
 import ReactFlow, {
   // 基础组件
@@ -83,7 +84,7 @@ const FlowEditorContent = () => {
       // 处理左侧
       if (isResizingLeft.current) {
         const newWidth = e.clientX + remToPx(0.25); // 考虑边框宽度
-        if (newWidth > 50 && newWidth < 600) {
+        if (newWidth > 150 && newWidth < 600) {
           setSidebarWidth(newWidth);
         }
       }
@@ -92,7 +93,7 @@ const FlowEditorContent = () => {
       if (isResizingRight.current) {
         const windowWidth = window.innerWidth;
         const newWidth = windowWidth - e.clientX + remToPx(0.25); // 考虑边框宽度
-        if (newWidth > 50 && newWidth < 800) {
+        if (newWidth > 180 && newWidth < 800) {
           setInspectorWidth(newWidth);
         }
       }
@@ -174,7 +175,7 @@ const FlowEditorContent = () => {
       {/* 顶部工具栏 */}
       <div className="h-14 bg-white border-b border-gray-200 flex items-center px-4 justify-between shadow-sm z-10">
         <div className="font-bold text-gray-700 flex items-center gap-2">
-          <span>🌊</span>
+          <img src={workflow} alt="Workflow" className='w-8 h-8' />
           <span>AI 工作流编排</span>
         </div>
 
@@ -182,7 +183,7 @@ const FlowEditorContent = () => {
           onClick={runFlow}
           className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors shadow-md flex items-center gap-2"
         >
-          <span>🚀</span>
+          <CirclePlay className="w-5 h-5" />
           <span>一键全局运行</span>
         </button>
       </div>

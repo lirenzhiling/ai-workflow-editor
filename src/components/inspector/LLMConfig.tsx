@@ -1,4 +1,5 @@
 import React from 'react';
+import { MessageSquareMore } from 'lucide-react';
 
 type Props = {
     nodeId: string;
@@ -54,14 +55,15 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
               ${data.status === 'running' ? 'bg-indigo-300' : 'bg-indigo-600 hover:bg-indigo-700'}
             `}
                 >
-                    {data.status === 'running' ? '🚀 正在思考...' : '▶ 运行'}
+                    {data.status === 'running' ? '正在思考...' : '运行'}
                 </button>
             </div>
             {/* 运行结果展示区 */}
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">
-                        📺 运行结果
+                        <MessageSquareMore className="inline-block w-4 h-4 mr-1" />
+                        运行结果
                     </label>
                     <button
                         onClick={handleCopy}

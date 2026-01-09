@@ -29,6 +29,10 @@ module.exports = {
                     'postcss-loader', // 把 Tailwind 编译成普通 CSS (最先执行！)
                 ],
             },
+            {
+                test: /\.(png|jpe?g|gif|svg)$/i,
+                type: 'asset/resource', // 让图片等静态资源被正确打包
+            },
         ],
     },
     //插件Plugins：扩展Webpack功能

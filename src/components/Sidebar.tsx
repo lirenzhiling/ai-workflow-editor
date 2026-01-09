@@ -1,4 +1,5 @@
 // src/components/Sidebar.tsx
+import { Bot, Flag } from 'lucide-react';
 import React from 'react';
 
 const Sidebar = () => {
@@ -19,7 +20,7 @@ const Sidebar = () => {
         onDragStart={(event) => onDragStart(event, 'startNode')}
         draggable
       >
-        <span className="mr-2">🏁</span>
+        <Flag className="mr-2 text-pink-500" />
         <span className="font-medium text-pink-700">开始节点</span>
       </div>
       {/* 结束节点模版 */}
@@ -28,7 +29,7 @@ const Sidebar = () => {
         onDragStart={(event) => onDragStart(event, 'endNode')}
         draggable
       >
-        <span className="mr-2">🏁</span>
+        <Flag className="mr-2 text-pink-500" />
         <span className="font-medium text-pink-700">结束节点</span>
       </div>
       {/* LLM 节点模版 */}
@@ -37,7 +38,7 @@ const Sidebar = () => {
         onDragStart={(event) => onDragStart(event, 'llmNode')}
         draggable // 让他可以拖动
       >
-        <span className="mr-2">🤖</span>
+        <Bot className="mr-2  text-indigo-500" />
         <span className="font-medium text-indigo-700">大模型 LLM</span>
       </div>
     </div>
