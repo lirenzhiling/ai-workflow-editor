@@ -4,11 +4,14 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { Node, NodeChange, Edge, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect, applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
 import { executors } from './services/nodeExecutors';
 
-// 这是我们的数据结构
+// 数据结构
 interface RFState {
     nodes: Node[];
     edges: Edge[];
     selectedNodeId: string | null;
+
+    isRunning: boolean;
+    abortController: AbortController | null;// 让运行中的节点停止对象
 
     // 方法定义
     onNodesChange: OnNodesChange;
@@ -20,6 +23,7 @@ interface RFState {
     deleteNode: (nodeId: string) => void;
     runNode: (nodeId: string, isRecursive?: boolean) => Promise<void>;
     runFlow: () => void;
+    stopFlow: () => void; // 停止方法
 }
 
 // 在这里实现 useStore
@@ -38,6 +42,8 @@ const useStore = create<RFState>()(
         nodes: initialNodes,
         edges: [],
         selectedNodeId: null,
+        isRunning: false,
+        abortController: null,
         onNodesChange: (changes: NodeChange[]) => {
             set({
                 nodes: applyNodeChanges(changes, get().nodes),
@@ -80,6 +86,16 @@ const useStore = create<RFState>()(
             });
         },
         runNode: async (nodeId: string, isRecursive = false) => {
+            // 全局拦截
+            if (isRecursive && !get().isRunning) return;
+
+            //单点运行
+            if (!isRecursive) {
+                get().stopFlow(); // 先清理旧状态，防止冲突
+                const tempController = new AbortController();
+                set({ isRunning: true, abortController: tempController });
+            }
+
             // 找到该节点
             const node = get().nodes.find((n) => n.id === nodeId);
             if (!node) return;
@@ -102,7 +118,8 @@ const useStore = create<RFState>()(
                         nodes: get().nodes,
                         edges: get().edges,
                         updateNodeData: get().updateNodeData,
-                        sourceNode
+                        sourceNode,
+                        abortSignal: get().abortController?.signal// 传递停止信号
                     });
                 } else {
                     console.warn(`未知的节点类型: ${node.type}`);
@@ -113,7 +130,7 @@ const useStore = create<RFState>()(
 
             try {
                 // 只有当 isRecursive 为 true 时，才触发下游
-                if (isRecursive) {
+                if (isRecursive && get().isRunning) {
                     const outgoingEdges = get().edges.filter(edge => edge.source === nodeId);
                     outgoingEdges.forEach(edge => {
                         // 告诉下游，开启递归模式
@@ -122,6 +139,11 @@ const useStore = create<RFState>()(
                 }
             } catch (error) {
                 console.error("运行下游节点时出错", error);
+            } finally {
+                // 如果是单点调试，跑完这一个节点，就自动把isRunning关掉。
+                if (!isRecursive) {
+                    set({ isRunning: false, abortController: null });
+                }
             }
         },
         deleteNode: (nodeId: string) => {
@@ -137,6 +159,13 @@ const useStore = create<RFState>()(
             });
         },
         runFlow: () => {
+            //先停掉之前的
+            get().stopFlow();
+
+            // 创建新的控制器
+            const controller = new AbortController();
+            set({ isRunning: true, abortController: controller });
+
             const { nodes, runNode } = get();
             // 找到 Start 节点
             const startNode = nodes.find(n => n.type === 'startNode');
@@ -151,6 +180,13 @@ const useStore = create<RFState>()(
             // 开启runNode持续执行
             runNode(startNode.id, true);
         },
+        stopFlow: () => {
+            const { abortController } = get();
+            if (abortController) {
+                abortController.abort(); // 这一步会触发 fetch 的 reject ('AbortError')
+            }
+            set({ isRunning: false, abortController: null });
+        }
     }),
         // 持久化配置,存到 LocalStorage
         {

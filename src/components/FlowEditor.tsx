@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, CirclePlay } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Circle, CirclePlay, CircleStop } from 'lucide-react';
 import workflow from "../assets/workflow.svg";
 import remToPx from '../utils/style';
 import ReactFlow, {
@@ -44,11 +44,13 @@ const FlowEditorContent = () => {
 
   // 从 Store 取出状态和方法
   // selector 模式：只监听我们需要的数据，避免不必要的渲染
-  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, addNode, setSelectedNode, selectedNodeId, runFlow } = useStore(
+  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, isRunning, stopFlow, addNode, setSelectedNode, selectedNodeId, runFlow } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
       edges: state.edges,
       selectedNodeId: state.selectedNodeId,
+      isRunning: state.isRunning,
+      stopFlow: state.stopFlow,
       onNodesChange: state.onNodesChange,
       onEdgesChange: state.onEdgesChange,
       onConnect: state.onConnect,
@@ -179,13 +181,23 @@ const FlowEditorContent = () => {
           <span>AI 工作流编排</span>
         </div>
 
-        <button
-          onClick={runFlow}
-          className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors shadow-md flex items-center gap-2"
-        >
-          <CirclePlay className="w-5 h-5" />
-          <span>一键全局运行</span>
-        </button>
+        {isRunning ? (
+          <button
+            onClick={stopFlow}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors shadow-md flex items-center gap-2 animate-pulse"
+          >
+            <CircleStop className="w-5 h-5" />
+            <span>停止运行</span>
+          </button>
+        ) : (
+          <button
+            onClick={runFlow}
+            className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors shadow-md flex items-center gap-2"
+          >
+            <CirclePlay className="w-5 h-5" />
+            <span>一键全局运行</span>
+          </button>
+        )}
       </div>
 
       <div className='flex-1 flex w-full overflow-hidden'>

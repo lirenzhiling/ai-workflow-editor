@@ -10,6 +10,8 @@ interface ExecutionContext {
     updateNodeData: (id: string, data: any) => void;
     //在store.ts里找好上游节点
     sourceNode: Node | null;
+
+    abortSignal?: AbortSignal;// 停止信号
 }
 
 // 配置 API 基础路径
@@ -39,7 +41,7 @@ export const executeEndNode = async ({ nodeId, sourceNode, updateNodeData }: Exe
 };
 
 // LLM 节点的逻辑
-export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNodeData }: ExecutionContext) => {
+export const executeLLMNode = async ({ nodeId, node, nodes, abortSignal, sourceNode, updateNodeData }: ExecutionContext) => {
     // 准备数据
     let prompt = node.data.prompt || '';
 
@@ -53,12 +55,11 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
     }
 
     const func = node.data.func || 'chat';
-    console.log(func);
 
     if (func === 'image') {
         console.log("图像生成");
 
-        await executeImage({ nodeId, node, sourceNode, nodes: [], edges: [], updateNodeData });
+        await executeImage({ nodeId, node, sourceNode, abortSignal, nodes: [], edges: [], updateNodeData });
         return;
     }
 
@@ -75,6 +76,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
             headers: {
                 "Content-Type": "application/json"
             },
+            signal: abortSignal,
             body: JSON.stringify({
                 messages: [
                     { role: 'user', content: prompt }
@@ -128,14 +130,20 @@ export const executeLLMNode = async ({ nodeId, node, nodes, sourceNode, updateNo
         // 标记状态：成功 (status = 'success')
         updateNodeData(nodeId, { status: 'success' });
     } catch (error) {
-        console.log('请求失败', error);
-        // 标记状态：失败 (status = 'error')
-        updateNodeData(nodeId, { status: 'error', output: '运行失败' });
+        if (error instanceof Error && error.name === 'AbortError') {
+            updateNodeData(nodeId, { status: 'idle', output: '已手动停止' });
+        } else if (error instanceof Error) {
+            console.error(error);
+            updateNodeData(nodeId, { status: 'error', output: `运行失败` });
+        } else {
+            console.error(error);
+            updateNodeData(nodeId, { status: 'error', output: 'Unknown error occurred' });
+        }
     }
 };
 
 // 绘图执行逻辑
-export const executeImage = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
+export const executeImage = async ({ nodeId, node, sourceNode, abortSignal, updateNodeData }: ExecutionContext) => {
     // 拼接 Prompt：上游输出（可选）+自己的描述
     const upstreamText = sourceNode?.data.output || '';
     const localPrompt = node.data.output || '';
@@ -158,6 +166,7 @@ export const executeImage = async ({ nodeId, node, sourceNode, updateNodeData }:
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: abortSignal,
             body: JSON.stringify({ prompt: finalPrompt })
         });
 
@@ -172,8 +181,15 @@ export const executeImage = async ({ nodeId, node, sourceNode, updateNodeData }:
         });
 
     } catch (error) {
-        console.error(error);
-        updateNodeData(nodeId, { status: 'error', output: '绘图失败，请检查后端日志' });
+        if (error instanceof Error && error.name === 'AbortError') {
+            updateNodeData(nodeId, { status: 'idle', output: '已手动停止' });
+        } else if (error instanceof Error) {
+            console.error(error);
+            updateNodeData(nodeId, { status: 'error', output: `运行失败` });
+        } else {
+            console.error(error);
+            updateNodeData(nodeId, { status: 'error', output: 'Unknown error occurred' });
+        }
     }
 };
 
