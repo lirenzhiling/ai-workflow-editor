@@ -6,7 +6,7 @@ import useStore from '../store';
 import LLMConfig from './inspector/LLMConfig';
 import StartConfig from './inspector/StartConfig';
 import EndConfig from './inspector/EndConfig';
-import { Settings } from 'lucide-react';
+import { Settings, Trash2 } from 'lucide-react';
 
 const configComponents: Record<string, React.FC<any>> = {
   startNode: StartConfig,
@@ -88,7 +88,7 @@ const NodeInspector = () => {
           }}
           className="w-full py-2 text-red-600 border border-red-200 bg-red-50 rounded hover:bg-red-100 transition-colors text-sm font-medium"
         >
-          🗑️ 删除选中节点
+          <Trash2 className="inline-block w-4 h-4 mr-2" />删除节点
         </button>
       </div>
     </div>
