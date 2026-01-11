@@ -49,7 +49,7 @@ const NodeInspector = () => {
           <Settings className="inline-block mr-2 text-gray-500" />
           <div className="font-bold inline-block text-gray-700">节点配置</div>
         </div>
-        {/* 调试信息：让你确认选对了没 */}
+        {/* 确认选对 */}
         <div className="text-xs text-gray-400 mb-4">ID: {selectedNode.id}</div>
 
         <label className="block text-sm font-medium text-gray-700 mb-1">节点名称</label>

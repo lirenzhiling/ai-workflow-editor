@@ -37,7 +37,6 @@ const FlowEditorContent = () => {
 
   //让工具栏和节点配置面板可调节宽度
   const [sidebarWidth, setSidebarWidth] = useState(250);   // 工具栏默认宽度
-  const [sidebarOffsetX, setSidebarOffsetX] = useState(0);
   const [inspectorWidth, setInspectorWidth] = useState(300); // 节点配置默认宽度
   const isResizingLeft = useRef(false);
   const isResizingRight = useRef(false);

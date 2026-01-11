@@ -132,11 +132,27 @@ const useStore = create<RFState>()(
                 // 只有当 isRecursive 为 true 时，才触发下游
                 if (isRecursive && get().isRunning) {
                     const outgoingEdges = get().edges.filter(edge => edge.source === nodeId);
+                    // 获取当前节点
+                    const currentNode = get().nodes.find(n => n.id === nodeId);
                     outgoingEdges.forEach(edge => {
+                        // 逐个判断是否符合条件
+                        if (currentNode?.type === 'conditionNode') {
+                            const selectedPath = currentNode.data.selectedPath;
+
+                            // 如果这根线的ID不等于选中的路径，就跳过
+                            if (edge.sourceHandle !== selectedPath) {
+                                console.log(`不符合条件: 期望走 ${selectedPath}, 但这根线是 ${edge.sourceHandle}`);
+                                return;
+                            }
+                        }
+
+                        // 正常触发
                         // 告诉下游，开启递归模式
                         setTimeout(() => get().runNode(edge.target, true), 500);
                     });
                 }
+
+
             } catch (error) {
                 console.error("运行下游节点时出错", error);
             } finally {
@@ -161,6 +177,13 @@ const useStore = create<RFState>()(
         runFlow: () => {
             //先停掉之前的
             get().stopFlow();
+
+            //重置节点
+            const resetNodes = get().nodes.map(node => ({
+                ...node,
+                data: { ...node.data, status: 'idle' } // 清空状态和输出
+            }));
+            useStore.setState({ nodes: resetNodes });
 
             // 创建新的控制器
             const controller = new AbortController();

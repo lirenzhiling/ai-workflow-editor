@@ -32,9 +32,6 @@ const ConditionNode = memo(({ data, selected }: NodeProps) => {
                     </div>
                 </div>
                 <div className="flex">
-                    <div className="text-xs text-gray-500">
-                        <span className="font-bold">{data.operator}</span>
-                    </div>
                     <div className="absolute -right-3 flex items-center">
                         <span className="text-xs font-bold mr-4 px-1">else</span>
                         <Handle

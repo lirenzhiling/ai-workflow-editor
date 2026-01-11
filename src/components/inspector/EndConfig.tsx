@@ -64,6 +64,7 @@ const EndConfig = ({ data }: Props) => {
                             <span>{outputText}</span>
                         </div>;
                 }
+
             })() : (
                 <span className="text-gray-400 italic">等待运行...</span>
             )}

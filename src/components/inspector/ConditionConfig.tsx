@@ -6,7 +6,7 @@ type Props = {
     onChange: (key: string, value: any) => void;
 };
 
-const ConditionConfig = ({ data, onChange }: Props) => {
+const ConditionConfig = ({ nodeId, data, onChange }: Props) => {
     return (
         <div className="flex flex-col gap-4">
             <div className="text-sm text-gray-500">
@@ -18,7 +18,7 @@ const ConditionConfig = ({ data, onChange }: Props) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">判断条件</label>
                 <select
                     value={data.operator || 'contains'}
-                    onChange={(e) => onChange('operator', e.target.value)}
+                    onChange={(e) => onChange(nodeId, { operator: e.target.value })}
                     className="w-full border border-gray-300 rounded p-2 text-sm outline-none"
                 >
                     <option value="contains">包含</option>
@@ -37,7 +37,7 @@ const ConditionConfig = ({ data, onChange }: Props) => {
                 <input
                     type="text"
                     value={data.targetValue || ''}
-                    onChange={(e) => onChange('targetValue', e.target.value)}
+                    onChange={(e) => onChange(nodeId, { targetValue: e.target.value })}
                     placeholder="例如：Error, 成功, http..."
                     className="w-full border border-gray-300 rounded p-2 text-sm outline-none"
                 />

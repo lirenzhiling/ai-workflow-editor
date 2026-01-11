@@ -25,19 +25,43 @@ export const config = {
 };
 
 // End 节点的逻辑
-export const executeEndNode = async ({ nodeId, sourceNode, updateNodeData }: ExecutionContext) => {
-    if (!sourceNode) {
-        alert('End节点还没连线呢！');
+export const executeEndNode = async ({ nodes, edges, nodeId, updateNodeData }: ExecutionContext) => {
+
+    const activeSource = getActiveSourceNode(nodes, edges, nodeId);
+
+    if (!activeSource) {
+        updateNodeData(nodeId, { output: '等待上游输入...' });
         return;
     }
 
-    // 直接用 sourceNode
     updateNodeData(nodeId, {
-        output: sourceNode.data.output || '上游节点还没有输出哦~',
-        func: sourceNode.data.func || 'unknown',// 记录一下是上个节点的功能类型
+        // 读取“成功运行”的节点的输出
+        output: activeSource.data.output || '上游节点没有输出内容',
+        func: activeSource.data.func || 'unknown',// 记录一下是上个节点的功能类型
         status: 'success'
     });
+    updateNodeData(nodeId, { status: 'success' });
+};
 
+const getActiveSourceNode = (nodes: Node[], edges: Edge[], currentNodeId: string) => {
+    // 找出所有指向当前节点的连线
+    const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
+
+    const sourceNodes = incomingEdges.map(edge =>
+        nodes.find(n => n.id === edge.source)
+    ).filter(n => n !== undefined) as Node[];
+
+    // 选择'success' 状态的
+    const activeNodes = sourceNodes.filter(node =>
+        node.data.status === 'success' && node.data.output
+    );
+
+    // 如果没找到（可能是刚开始运行），就返回随便一个，防止报错
+    if (activeNodes.length === 0) return sourceNodes[0] || null;
+
+    // 如果找到了，返回第一个（对于 If/Else 互斥分支，永远只有 1 个）
+    // TODO：如果以后做并行处理，可以将 activeNodes 的 output 拼起来返回一个虚拟节点
+    return activeNodes[0];
 };
 
 // LLM 节点的逻辑
@@ -193,9 +217,44 @@ export const executeImage = async ({ nodeId, node, sourceNode, abortSignal, upda
     }
 };
 
+//条件节点逻辑
+export const executeConditionNode = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
+    const input = sourceNode?.data.output || ''; // 上游输入
+    const target = node.data.targetValue || '';  // 设定的目标值
+    const operator = node.data.operator || 'contains';
+
+    let result = false;
+
+    // 执行具体的比较逻辑
+    switch (operator) {
+        case 'contains':
+            result = input.includes(target);
+            break;
+        case 'not_contains':
+            result = !input.includes(target);
+            break;
+        case 'equals':
+            result = input === target;
+            break;
+        default:
+            result = false;
+    }
+
+    console.log(`判断节点 ${nodeId}: "${input}" ${operator} "${target}" => ${result}`);
+
+    // 保存状态，还要保存 "selectedPath" (选中的路径 ID)
+    // true 对应 ID "true"，false 对应 ID "false"
+    updateNodeData(nodeId, {
+        status: 'success',
+        result: result, // 存个布尔值给 UI 用
+        selectedPath: result ? 'true' : 'false', // 存个 handleId 给 Store 用
+        output: input // 把输入透传下去，方便下游继续使用
+    });
+};
+
 // 注册表：把类型映射到函数
 export const executors: Record<string, Function> = {
     endNode: executeEndNode,
     llmNode: executeLLMNode,
-    // 以后加新节点，在这里注册一行
+    conditionNode: executeConditionNode,
 };
