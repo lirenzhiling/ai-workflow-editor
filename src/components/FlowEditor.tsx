@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Circle, CirclePlay, CircleStop } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CirclePlay, CircleStop } from 'lucide-react';
 import workflow from "../assets/workflow.svg";
 import remToPx from '../utils/style';
 import ReactFlow, {
@@ -19,11 +19,13 @@ import Sidebar from './Sidebar';
 import NodeInspector from './NodeInspector';
 import StartNode from './nodes/StartNode';
 import EndNode from './nodes/EndNode';
+import ConditionNode from './nodes/ConditionNode';
 
 const nodeTypes = {
   llmNode: LLMNode,
   startNode: StartNode,
   endNode: EndNode,
+  conditionNode: ConditionNode,
 };
 
 
@@ -184,7 +186,7 @@ const FlowEditorContent = () => {
         {isRunning ? (
           <button
             onClick={stopFlow}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors shadow-md flex items-center gap-2 animate-pulse"
+            className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors shadow-md flex items-center gap-2"
           >
             <CircleStop className="w-5 h-5" />
             <span>停止运行</span>

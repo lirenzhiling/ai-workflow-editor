@@ -23,7 +23,7 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">模型型号</label>
             <select
-                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm outline-none"
                 value={data.model || 'GPT-4o'}
                 onChange={(e) => onChange(nodeId, { model: e.target.value })}
             >
@@ -34,7 +34,7 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
             </select>
             <label className="block text-sm font-medium text-gray-700 mb-1">功能选择</label>
             <select
-                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm outline-none"
                 value={data.func || 'chat'}
                 onChange={(e) => onChange(nodeId, { func: e.target.value })}
             >
@@ -42,7 +42,7 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
                 <option value="image">图片生成</option>
             </select>
             <textarea
-                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
+                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2 outline-none"
                 placeholder="请输入提示词..."
                 value={data.prompt || ''}
                 onChange={(e) => onChange(nodeId, { prompt: e.target.value })}

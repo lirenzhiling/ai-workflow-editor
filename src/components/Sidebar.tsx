@@ -1,5 +1,5 @@
 // src/components/Sidebar.tsx
-import { Bot, Flag } from 'lucide-react';
+import { Bot, Flag, Split } from 'lucide-react';
 import React from 'react';
 
 const Sidebar = () => {
@@ -40,6 +40,15 @@ const Sidebar = () => {
       >
         <Bot className="mr-2  text-indigo-500" />
         <span className="font-medium text-indigo-700">大模型 LLM</span>
+      </div>
+      {/* 条件判断节点模版 */}
+      <div
+        className="h-16 border-2 border-orange-500 rounded cursor-grab flex items-center justify-center bg-orange-50 hover:bg-orange-100"
+        onDragStart={(event) => onDragStart(event, 'conditionNode')}
+        draggable
+      >
+        <Split className="mr-2 text-orange-400" />
+        <span className="font-medium text-orange-500">条件判断</span>
       </div>
     </div>
   );

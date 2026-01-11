@@ -6,12 +6,14 @@ import useStore from '../store';
 import LLMConfig from './inspector/LLMConfig';
 import StartConfig from './inspector/StartConfig';
 import EndConfig from './inspector/EndConfig';
+import ConditionConfig from './inspector/ConditionConfig';
 import { Settings, Trash2 } from 'lucide-react';
 
 const configComponents: Record<string, React.FC<any>> = {
   startNode: StartConfig,
   llmNode: LLMConfig,
   endNode: EndConfig,
+  conditionNode: ConditionConfig,
 };
 
 const NodeInspector = () => {

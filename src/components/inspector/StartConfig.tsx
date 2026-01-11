@@ -12,7 +12,7 @@ const StartConfig = ({ nodeId, data, onChange }: Props) => {
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">输入内容</label>
             <textarea
-                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
+                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2 outline-none"
                 placeholder="请输入提示词..."
                 value={data.output || ''}
                 onChange={(e) => onChange(nodeId, { output: e.target.value })}
