@@ -1,6 +1,6 @@
 import React from 'react';
 import { MessageSquareMore } from 'lucide-react';
-import isImageUrl from '../../utils/image-utils';
+import { isImageUrl } from '../../utils/image-utils';
 
 type Props = {
     nodeId: string;
@@ -29,7 +29,7 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
             >
                 <option value="Deepseek">Deepseek</option>
                 <option value="GPT-4o">GPT-4o</option>
-                <option value="GPT-3.5">GPT-3.5</option>
+                <option value="doubao">doubao</option>
                 <option value="Claude-3">Claude 3.5 Sonnet</option>
             </select>
             <label className="block text-sm font-medium text-gray-700 mb-1">功能选择</label>

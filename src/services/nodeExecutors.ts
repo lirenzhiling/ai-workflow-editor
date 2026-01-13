@@ -1,5 +1,6 @@
 // src/services/nodeExecutors.ts
 import { Node, Edge } from 'reactflow';
+import { isImageUrl } from '../utils/image-utils';
 
 // 定义一个通用的上下文，因为执行节点时需要用到 store 里的方法
 interface ExecutionContext {
@@ -12,6 +13,7 @@ interface ExecutionContext {
     sourceNode: Node | null;
 
     abortSignal?: AbortSignal;// 停止信号
+    prompt?: string; // 提示词
 }
 
 // 配置 API 基础路径
@@ -21,6 +23,7 @@ export const config = {
         baseUrl: apiBaseUrl,
         image: `${apiBaseUrl}/image`,
         chat: `${apiBaseUrl}/chat`,
+        vision: `${apiBaseUrl}/vision`,
     },
 };
 
@@ -65,13 +68,15 @@ const getActiveSourceNode = (nodes: Node[], edges: Edge[], currentNodeId: string
 };
 
 // LLM 节点的逻辑
-export const executeLLMNode = async ({ nodeId, node, nodes, abortSignal, sourceNode, updateNodeData }: ExecutionContext) => {
+export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, updateNodeData }: ExecutionContext) => {
     // 准备数据
     let prompt = node.data.prompt || '';
 
-    if (sourceNode && sourceNode.data.output) {
-        console.log(`成功连接！接收到上游数据: ${sourceNode.data.output.slice(0, 10)}...`);
-        prompt = `【上文输入】：\n${sourceNode.data.output}\n\n【我的指令】：\n${prompt}`;
+    const activeSource = getActiveSourceNode(nodes, edges, nodeId);
+
+    if (activeSource && activeSource.data.output) {
+        console.log(`${nodeId}成功连接！接收到上游数据: ${activeSource.data.output.slice(0, 10)}...`);
+        prompt = `【上文输入】：\n${activeSource.data.output}\n\n【我的指令】：\n${prompt}`;
     }
     if (!prompt.trim()) {
         alert('节点没有输入，无法运行！');
@@ -83,7 +88,11 @@ export const executeLLMNode = async ({ nodeId, node, nodes, abortSignal, sourceN
     if (func === 'image') {
         console.log("图像生成");
 
-        await executeImage({ nodeId, node, sourceNode, abortSignal, nodes: [], edges: [], updateNodeData });
+        await executeImage({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, nodes: [], edges: [], updateNodeData });
+        return;
+    }
+    if (activeSource.data.func === 'image' && isImageUrl(activeSource.data.output)) {
+        await executeVision({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, updateNodeData, nodes: [], edges: [] });
         return;
     }
 
@@ -167,14 +176,11 @@ export const executeLLMNode = async ({ nodeId, node, nodes, abortSignal, sourceN
 };
 
 // 绘图执行逻辑
-export const executeImage = async ({ nodeId, node, sourceNode, abortSignal, updateNodeData }: ExecutionContext) => {
-    // 拼接 Prompt：上游输出（可选）+自己的描述
-    const upstreamText = sourceNode?.data.output || '';
-    const localPrompt = node.data.output || '';
+export const executeImage = async ({ nodeId, prompt, abortSignal, updateNodeData }: ExecutionContext) => {
 
-    const finalPrompt = `${upstreamText} ${localPrompt}`.trim();
+    console.log('绘图提示词：' + prompt);
 
-    if (!finalPrompt) {
+    if (!prompt) {
         alert('给点图像生成的描述吧！');
         return;
     }
@@ -191,7 +197,7 @@ export const executeImage = async ({ nodeId, node, sourceNode, abortSignal, upda
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             signal: abortSignal,
-            body: JSON.stringify({ prompt: finalPrompt })
+            body: JSON.stringify({ prompt: prompt })
         });
 
         const data = await response.json();
@@ -217,6 +223,45 @@ export const executeImage = async ({ nodeId, node, sourceNode, abortSignal, upda
     }
 };
 
+// 图像识别逻辑
+export const executeVision = async ({ nodeId, prompt, sourceNode, abortSignal, updateNodeData }: ExecutionContext) => {
+    const imageUrl = sourceNode?.data.output || '';
+
+    if (!imageUrl || !isImageUrl(imageUrl)) {
+        alert('没有图片输入，无法运行视觉识别！');
+        return;
+    }
+
+    updateNodeData(nodeId, { status: 'running', output: '' });
+
+    try {
+        const response = await fetch(config.api.vision, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: abortSignal,
+            body: JSON.stringify({
+                prompt: prompt || '请描述这张图片的内容',
+                imageUrl: imageUrl,
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        updateNodeData(nodeId, { status: 'success', output: data.result });
+    } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            updateNodeData(nodeId, { status: 'idle', output: '已手动停止' });
+        } else if (error instanceof Error) {
+            console.error(error);
+            updateNodeData(nodeId, { status: 'error', output: '运行失败' });
+        } else {
+            console.error(error);
+            updateNodeData(nodeId, { status: 'error', output: 'Unknown error occurred' });
+        }
+    }
+};
+
 //条件节点逻辑
 export const executeConditionNode = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
     const input = sourceNode?.data.output || ''; // 上游输入
@@ -232,9 +277,6 @@ export const executeConditionNode = async ({ nodeId, node, sourceNode, updateNod
             break;
         case 'not_contains':
             result = !input.includes(target);
-            break;
-        case 'equals':
-            result = input === target;
             break;
         default:
             result = false;

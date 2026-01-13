@@ -26,6 +26,24 @@ const clientSeedream = new OpenAI({
   baseURL: 'https://ark.cn-beijing.volces.com/api/v3/images/generations', // 豆包火山引擎接口地址
 });
 
+// 配置豆包识图 客户端
+const clientVision = new OpenAI({
+  apiKey: process.env.DOUBAO_API_KEY,
+  baseURL: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+});
+
+// 图片处理：将图片转为 Base64（或使用图片 URL）
+async function getImageBase64(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`图片下载失败: ${response.status}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString('base64');
+  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  return `data:${contentType};base64,${base64}`;
+}
+
 
 // 文字聊天接口，暂时用ds
 app.post('/api/chat', async (req, res) => {
@@ -38,7 +56,7 @@ app.post('/api/chat', async (req, res) => {
     const completion = await clientDeepSeek.chat.completions.create({
       messages: messages, // 前端传来的历史记录
       model: 'deepseek-chat', // 或者 'deepseek-coder'
-      stream: true, // 开启流式传输！
+      stream: true, // 开启流式传输
     });
 
     // 设置响应头，告诉浏览器这是一个流
@@ -110,6 +128,67 @@ app.post('/api/image', async (req, res) => {
 
   } catch (error) {
     console.error('绘图失败:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+//图片识别接口，暂时用豆包
+app.post('/api/vision', async (req, res) => {
+  try {
+    const { prompt, imageUrl } = req.body;
+    console.log('申请豆包识图:', prompt);
+    const imageBase64 = await getImageBase64(imageUrl);
+    // 准备请求体
+    const payload = {
+      model: "ep-20260113160702-42fmh", // 我的模型
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageBase64, // 图片 Base64 或 URL
+                detail: 'high' // 高细节模式（可选：high/low）
+              }
+            }
+          ]
+        }
+      ],
+      stream: false
+    };
+
+    // 发送请求到火山引擎 (Ark)
+    const response = await fetch(clientVision.baseURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // 从环境变量读取 Key
+        'Authorization': `Bearer ${clientVision.apiKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    // 错误处理
+    if (data.error) {
+      console.error('豆包报错:', data.error);
+      throw new Error(data.error.message || 'API 请求错误');
+    }
+
+    // 返回内容
+    const result = data.choices?.[0]?.message?.content;
+    if (!result) throw new Error('返回数据格式异常');
+
+    res.json({ result });
+
+  } catch (error) {
+    console.error('识图失败:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

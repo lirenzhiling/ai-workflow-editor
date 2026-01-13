@@ -23,11 +23,6 @@ const ConditionConfig = ({ nodeId, data, onChange }: Props) => {
                 >
                     <option value="contains">包含</option>
                     <option value="not_contains">不包含</option>
-                    <option value="greater_than">大于</option>
-                    <option value="greater_equal">大于等于</option>
-                    <option value="equals">等于</option>
-                    <option value="less_equal">小于等于</option>
-                    <option value="less_than">小于</option>
                 </select>
             </div>
 
