@@ -14,6 +14,7 @@ interface ExecutionContext {
 
     abortSignal?: AbortSignal;// 停止信号
     prompt?: string; // 提示词
+    stopFlow?: () => void; // 停止整个流程的函数
 }
 
 // 配置 API 基础路径
@@ -28,7 +29,7 @@ export const config = {
 };
 
 // End 节点的逻辑
-export const executeEndNode = async ({ nodes, edges, nodeId, updateNodeData }: ExecutionContext) => {
+export const executeEndNode = async ({ nodes, edges, nodeId, updateNodeData, stopFlow }: ExecutionContext) => {
 
     const activeSource = getActiveSourceNode(nodes, edges, nodeId);
 
@@ -44,6 +45,9 @@ export const executeEndNode = async ({ nodes, edges, nodeId, updateNodeData }: E
         status: 'success'
     });
     updateNodeData(nodeId, { status: 'success' });
+    stopFlow && stopFlow();
+    console.log(12311424);
+
 };
 
 const getActiveSourceNode = (nodes: Node[], edges: Edge[], currentNodeId: string) => {

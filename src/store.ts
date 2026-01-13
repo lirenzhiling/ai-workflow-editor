@@ -119,7 +119,8 @@ const useStore = create<RFState>()(
                         edges: get().edges,
                         updateNodeData: get().updateNodeData,
                         sourceNode,
-                        abortSignal: get().abortController?.signal// 传递停止信号
+                        abortSignal: get().abortController?.signal,// 传递停止信号
+                        stopFlow: get().stopFlow // 传递停止流程的函数
                     });
                 } else {
                     console.warn(`未知的节点类型: ${node.type}`);
