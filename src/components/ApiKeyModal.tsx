@@ -1,8 +1,8 @@
 // src/components/ApiKeyModal.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import useStore from '../store';
 import { useShallow } from 'zustand/react/shallow';
-import { KeyRound } from 'lucide-react';
+import { Eye, EyeOff, KeyRound } from 'lucide-react';
 
 type Props = {
     isOpen: boolean;
@@ -14,6 +14,9 @@ const ApiKeyModal = ({ isOpen, onClose }: Props) => {
         apiKeys: state.apiKeys,
         updateApiKey: state.updateApiKey
     })));
+
+    const [showDoubao, setShowDoubao] = useState(false);
+    const [showDeepseek, setShowDeepseek] = useState(false);
 
     if (!isOpen) return null;
 
@@ -32,13 +35,25 @@ const ApiKeyModal = ({ isOpen, onClose }: Props) => {
                             <span>火山引擎 (豆包/Doubao)</span>
                             <span className="text-gray-400 font-normal">用于画图、识图</span>
                         </label>
-                        <input
-                            type="password"
-                            value={apiKeys.doubao}
-                            onChange={(e) => updateApiKey('doubao', e.target.value)}
-                            placeholder="xxxxxxxx-xxxx (Doubao)"
-                            className="w-full border border-gray-300 rounded p-2 text-sm font-mono focus:border-green-500 outline-none"
-                        />
+                        <div className="relative">
+                            <input
+                                type={showDoubao ? "text" : "password"}
+                                value={apiKeys.doubao}
+                                onChange={(e) => updateApiKey('doubao', e.target.value)}
+                                placeholder="xxxxxxxx-xxxx (Doubao)"
+                                className="w-full border border-gray-300 rounded p-2 text-sm font-mono focus:border-green-500 outline-none"
+                            />
+                            <div
+                                className="absolute right-3 top-2 cursor-pointer"
+                                onClick={() => setShowDoubao(!showDoubao)}
+                            >
+                                {showDoubao ? (
+                                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                                ) : (
+                                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Deepseek */}
@@ -47,13 +62,25 @@ const ApiKeyModal = ({ isOpen, onClose }: Props) => {
                             <span>Deepseek (深度求索)</span>
                             <span className="text-gray-400 font-normal">用于 V3/R1 对话</span>
                         </label>
-                        <input
-                            type="password"
-                            value={apiKeys.deepseek}
-                            onChange={(e) => updateApiKey('deepseek', e.target.value)}
-                            placeholder="sk-xxxxxxxx (Deepseek)"
-                            className="w-full border border-gray-300 rounded p-2 text-sm font-mono focus:border-green-500 outline-none"
-                        />
+                        <div className="relative">
+                            <input
+                                type={showDeepseek ? "text" : "password"}
+                                value={apiKeys.deepseek}
+                                onChange={(e) => updateApiKey('deepseek', e.target.value)}
+                                placeholder="sk-xxxxxxxx (Deepseek)"
+                                className="w-full border border-gray-300 rounded p-2 text-sm font-mono focus:border-green-500 outline-none"
+                            />
+                            <div
+                                className="absolute right-3 top-2 cursor-pointer"
+                                onClick={() => setShowDeepseek(!showDeepseek)}
+                            >
+                                {showDeepseek ? (
+                                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                                ) : (
+                                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* OpenAI (预留) */}
