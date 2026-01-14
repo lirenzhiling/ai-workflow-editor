@@ -24,13 +24,11 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">模型型号</label>
             <select
                 className="w-full border border-gray-300 rounded px-2 py-1 text-sm outline-none"
-                value={data.model || 'GPT-4o'}
+                value={data.model || 'Deepseek'}
                 onChange={(e) => onChange(nodeId, { model: e.target.value })}
             >
                 <option value="Deepseek">Deepseek</option>
-                <option value="GPT-4o">GPT-4o</option>
                 <option value="doubao">doubao</option>
-                <option value="Claude-3">Claude 3.5 Sonnet</option>
             </select>
             <label className="block text-sm font-medium text-gray-700 mb-1">功能选择</label>
             <select

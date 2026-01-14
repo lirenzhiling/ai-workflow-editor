@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, CirclePlay, CircleStop } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CirclePlay, CircleStop, Key, KeyRound } from 'lucide-react';
 import workflow from "../assets/workflow.svg";
 import remToPx from '../utils/style';
 import ReactFlow, {
@@ -20,6 +20,7 @@ import NodeInspector from './NodeInspector';
 import StartNode from './nodes/StartNode';
 import EndNode from './nodes/EndNode';
 import ConditionNode from './nodes/ConditionNode';
+import ApiKeyModal from './ApiKeyModal';
 
 const nodeTypes = {
   llmNode: LLMNode,
@@ -60,6 +61,8 @@ const FlowEditorContent = () => {
       runFlow: state.runFlow,
     }))
   );
+
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   // 节点id变了自动打开节点配置面板
   useEffect(() => {
@@ -175,30 +178,40 @@ const FlowEditorContent = () => {
 
   return (
     <div className='flex h-full w-full flex-col'>
+      {/* ... 遮罩层 ... */}
+      <ApiKeyModal isOpen={isKeyModalOpen} onClose={() => setIsKeyModalOpen(false)} />
       {/* 顶部工具栏 */}
       <div className="h-14 bg-white border-b border-gray-200 flex items-center px-4 justify-between shadow-sm z-10">
         <div className="font-bold text-gray-700 flex items-center gap-2">
           <img src={workflow} alt="Workflow" className='w-8 h-8' />
           <span>AI 工作流编排</span>
         </div>
-
-        {isRunning ? (
+        <div className='flex gap-2'>
           <button
-            onClick={stopFlow}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors shadow-md flex items-center gap-2"
+            onClick={() => setIsKeyModalOpen(true)}
+            className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            title="设置 API Key"
           >
-            <CircleStop className="w-5 h-5" />
-            <span>停止运行</span>
+            <KeyRound className="w-5 h-5" />
           </button>
-        ) : (
-          <button
-            onClick={runFlow}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors shadow-md flex items-center gap-2"
-          >
-            <CirclePlay className="w-5 h-5" />
-            <span>一键全局运行</span>
-          </button>
-        )}
+          {isRunning ? (
+            <button
+              onClick={stopFlow}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors shadow-md flex items-center gap-2"
+            >
+              <CircleStop className="w-5 h-5" />
+              <span>停止运行</span>
+            </button>
+          ) : (
+            <button
+              onClick={runFlow}
+              className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors shadow-md flex items-center gap-2"
+            >
+              <CirclePlay className="w-5 h-5" />
+              <span>一键全局运行</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className='flex-1 flex w-full overflow-hidden'>

@@ -14,11 +14,10 @@ app.use(cors());
 // 允许接收 JSON 格式的请求体
 app.use(express.json());
 
-// 配置DeepSeek 客户端
-const clientDeepSeek = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-  baseURL: 'https://api.deepseek.com', // DeepSeek 官方接口地址
-});
+const PROVIDER_CONFIG = {
+  doubao: "https://ark.cn-beijing.volces.com/api/v3",
+  deepseek: "https://api.deepseek.com",
+};
 
 // 配置豆包生图 客户端
 const clientSeedream = new OpenAI({
@@ -47,17 +46,49 @@ async function getImageBase64(url) {
 
 // 文字聊天接口，暂时用ds
 app.post('/api/chat', async (req, res) => {
-  const { messages } = req.body;
+  const { prompt, messages } = req.body;
+
+  // 支持从请求头获取 provider 和 api key
+  const provider = req.headers['x-provider'] || 'doubao';
+  const userKey = req.headers['x-api-key'];
+
+  let finalApiKey = userKey;
+  if (!finalApiKey || finalApiKey.trim() === '') {
+    if (provider === 'deepseek') finalApiKey = process.env.DEEPSEEK_API_KEY;
+    else finalApiKey = process.env.ARK_API_KEY;
+  }
+
+  if (!finalApiKey) {
+    return res.status(500).json({ error: `未配置 ${provider} 的 API Key` });
+  }
+
+  const baseURL = PROVIDER_CONFIG[provider];
+  console.log(`请求转发 -> Provider: ${provider} | URL: ${baseURL}`);
+
+  const client = new OpenAI({
+    apiKey: finalApiKey,
+    baseURL: baseURL,
+  });
 
   try {
     console.log('收到前端请求:', messages);
 
-    // 发送请求给 DeepSeek
-    const completion = await clientDeepSeek.chat.completions.create({
-      messages: messages, // 前端传来的历史记录
-      model: 'deepseek-chat', // 或者 'deepseek-coder'
-      stream: true, // 开启流式传输
-    });
+    let completion;
+    if (provider === 'deepseek') {
+      // 发送请求给 DeepSeek
+      completion = await client.chat.completions.create({
+        messages: messages, // 前端传来的历史记录
+        model: 'deepseek-chat', // 或者 'deepseek-coder'
+        stream: true, // 开启流式传输
+      });
+    } else {
+      // 发送请求给豆包（使用 OpenAI SDK 统一处理）
+      completion = await client.chat.completions.create({
+        messages: messages, // 前端传来的历史记录
+        model: "doubao-seed-1-6-lite-251015", // 豆包模型 ID
+        stream: true, // 开启流式传输
+      });
+    }
 
     // 设置响应头，告诉浏览器这是一个流
     res.setHeader('Content-Type', 'text/event-stream');
@@ -78,7 +109,7 @@ app.post('/api/chat', async (req, res) => {
     res.end();
 
   } catch (error) {
-    console.error('DeepSeek API 调用失败:', error);
+    console.error('API 调用失败:', error);
     res.status(500).json({ error: '服务器出错了' });
   }
 });

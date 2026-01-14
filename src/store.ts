@@ -13,6 +13,13 @@ interface RFState {
     isRunning: boolean;
     abortController: AbortController | null;// 让运行中的节点停止对象
 
+    //用户的 API Key 存储
+    apiKeys: {
+        doubao: string;
+        deepseek: string;
+    };
+    updateApiKey: (provider: keyof RFState['apiKeys'], value: string) => void;
+
     // 方法定义
     onNodesChange: OnNodesChange;
     onEdgesChange: OnEdgesChange;
@@ -33,7 +40,7 @@ const initialNodes: Node[] = [
         id: 'node-1',
         type: 'llmNode',
         position: { x: 250, y: 100 },
-        data: { model: 'GPT-4o', status: 'ready' }
+        data: { model: 'Deepseek', status: 'ready' }
     },
 ];
 const useStore = create<RFState>()(
@@ -44,6 +51,10 @@ const useStore = create<RFState>()(
         selectedNodeId: null,
         isRunning: false,
         abortController: null,
+        apiKeys: {
+            doubao: '',
+            deepseek: '',
+        },
         onNodesChange: (changes: NodeChange[]) => {
             set({
                 nodes: applyNodeChanges(changes, get().nodes),
@@ -210,16 +221,25 @@ const useStore = create<RFState>()(
                 abortController.abort(); // 这一步会触发 fetch 的 reject ('AbortError')
             }
             set({ isRunning: false, abortController: null });
-        }
+        },
+        updateApiKey: (provider, value) => {
+            set((state) => ({
+                apiKeys: {
+                    ...state.apiKeys,
+                    [provider]: value
+                }
+            }));
+        },
     }),
         // 持久化配置,存到 LocalStorage
         {
             name: "ai-flow-storage",//key
             storage: createJSONStorage(() => localStorage),//存储方式:LocalStorage
-            // 存储内容: 只存 nodes 和 edges
+            // 存储内容: 只存 nodes、edges、apiKeys
             partialize: (state) => ({
                 nodes: state.nodes,
                 edges: state.edges,
+                apiKeys: state.apiKeys,
             }),
 
         }

@@ -1,6 +1,7 @@
 // src/services/nodeExecutors.ts
 import { Node, Edge } from 'reactflow';
 import { isImageUrl } from '../utils/image-utils';
+import useStore from '../store';
 
 // 定义一个通用的上下文，因为执行节点时需要用到 store 里的方法
 interface ExecutionContext {
@@ -28,28 +29,7 @@ export const config = {
     },
 };
 
-// End 节点的逻辑
-export const executeEndNode = async ({ nodes, edges, nodeId, updateNodeData, stopFlow }: ExecutionContext) => {
-
-    const activeSource = getActiveSourceNode(nodes, edges, nodeId);
-
-    if (!activeSource) {
-        updateNodeData(nodeId, { output: '等待上游输入...' });
-        return;
-    }
-
-    updateNodeData(nodeId, {
-        // 读取“成功运行”的节点的输出
-        output: activeSource.data.output || '上游节点没有输出内容',
-        func: activeSource.data.func || 'unknown',// 记录一下是上个节点的功能类型
-        status: 'success'
-    });
-    updateNodeData(nodeId, { status: 'success' });
-    stopFlow && stopFlow();
-    console.log(12311424);
-
-};
-
+//通用：获取多个上游输入节点中状态为 success 的节点
 const getActiveSourceNode = (nodes: Node[], edges: Edge[], currentNodeId: string) => {
     // 找出所有指向当前节点的连线
     const incomingEdges = edges.filter(edge => edge.target === currentNodeId);
@@ -71,7 +51,28 @@ const getActiveSourceNode = (nodes: Node[], edges: Edge[], currentNodeId: string
     return activeNodes[0];
 };
 
-// LLM 节点的逻辑
+// End 节点的逻辑
+export const executeEndNode = async ({ nodes, edges, nodeId, updateNodeData, stopFlow }: ExecutionContext) => {
+
+    const activeSource = getActiveSourceNode(nodes, edges, nodeId);
+
+    if (!activeSource) {
+        updateNodeData(nodeId, { output: '等待上游输入...' });
+        return;
+    }
+
+    updateNodeData(nodeId, {
+        // 读取“成功运行”的节点的输出
+        output: activeSource.data.output || '上游节点没有输出内容',
+        func: activeSource.data.func || 'unknown',// 记录一下是上个节点的功能类型
+        status: 'success'
+    });
+    updateNodeData(nodeId, { status: 'success' });
+    stopFlow && stopFlow();
+};
+
+
+// ----------------LLM 节点的逻辑---------------------
 export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, updateNodeData }: ExecutionContext) => {
     // 准备数据
     let prompt = node.data.prompt || '';
@@ -87,16 +88,25 @@ export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, 
         return;
     }
 
+    const model = node.data.model || 'GPT-4o';
+
+    // 取对应的 Key
+    const provider = getProviderByModel(model);
+    const allApiKeys = useStore.getState().apiKeys;
+    const userApiKey = allApiKeys[provider];
+
+    console.log(`模型: ${model} -> 服务商: ${provider}`);
+
     const func = node.data.func || 'chat';
 
     if (func === 'image') {
         console.log("图像生成");
 
-        await executeImage({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, nodes: [], edges: [], updateNodeData });
+        await executeImage({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, nodes, edges, updateNodeData });
         return;
     }
     if (activeSource.data.func === 'image' && isImageUrl(activeSource.data.output)) {
-        await executeVision({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, updateNodeData, nodes: [], edges: [] });
+        await executeVision({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, updateNodeData, nodes, edges });
         return;
     }
 
@@ -107,14 +117,19 @@ export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, 
     const apiUrl = config.api.chat;
     try {
         console.log("发送内容：" + prompt);
+        console.log(userApiKey, provider);
 
         const response = await fetch(apiUrl, {
             method: 'post',
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                'x-api-key': userApiKey || '', // 传 Key
+                'x-provider': provider
             },
             signal: abortSignal,
             body: JSON.stringify({
+                model: model,
+                prompt: prompt,
                 messages: [
                     { role: 'user', content: prompt }
                 ]
@@ -192,6 +207,9 @@ export const executeImage = async ({ nodeId, prompt, abortSignal, updateNodeData
     // 标记为运行中
     updateNodeData(nodeId, { status: 'running', output: '' });
 
+    //画图只能用指定的ai
+    const userApiKey = useStore.getState().apiKeys.doubao;
+
     try {
         // 调用刚才写的后端接口
         // 这里的 replace 是为了复用 Webpack 注入的 API_URL 基础路径
@@ -199,7 +217,11 @@ export const executeImage = async ({ nodeId, prompt, abortSignal, updateNodeData
 
         const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': userApiKey || '',
+                'x-provider': 'doubao'
+            },
             signal: abortSignal,
             body: JSON.stringify({ prompt: prompt })
         });
@@ -238,10 +260,17 @@ export const executeVision = async ({ nodeId, prompt, sourceNode, abortSignal, u
 
     updateNodeData(nodeId, { status: 'running', output: '' });
 
+    //识图只能用指定的ai
+    const userApiKey = useStore.getState().apiKeys.doubao;
+
     try {
         const response = await fetch(config.api.vision, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': userApiKey || '',
+                'x-provider': 'doubao'
+            },
             signal: abortSignal,
             body: JSON.stringify({
                 prompt: prompt || '请描述这张图片的内容',
@@ -265,6 +294,14 @@ export const executeVision = async ({ nodeId, prompt, sourceNode, abortSignal, u
         }
     }
 };
+
+const getProviderByModel = (modelName: string): 'doubao' | 'deepseek' => {
+    const lower = modelName.toLowerCase();
+    if (lower.includes('deepseek')) return 'deepseek';
+    if (lower.includes('doubao')) return 'doubao';
+    return 'deepseek'; // 默认使用 deepseek
+};
+// ----------------LLM 节点的逻辑---------------------
 
 //条件节点逻辑
 export const executeConditionNode = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
