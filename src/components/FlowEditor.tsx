@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, CirclePlay, CircleStop, Key, KeyRound } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CirclePlay, CircleStop, KeyRound } from 'lucide-react';
 import workflow from "../assets/workflow.svg";
 import remToPx from '../utils/style';
 import ReactFlow, {
