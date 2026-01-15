@@ -3,8 +3,7 @@ import React from 'react';
 type Props = {
     nodeId: string;
     data: any;
-    onChange: (key: string, value: any) => void;
-};
+    onChange: (nodeId: string, newData: any) => void;
 
 const ConditionConfig = ({ nodeId, data, onChange }: Props) => {
     return (
