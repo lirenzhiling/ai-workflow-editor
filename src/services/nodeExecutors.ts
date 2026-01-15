@@ -416,8 +416,8 @@ const getProviderByModel = (modelName: string): 'doubao' | 'deepseek' => {
 
 //条件节点逻辑
 export const executeConditionNode = async (context: ExecutionContext) => {
-    const { nodeId, node, updateNodeData } = context;
-    const activeSourceNode = getActiveSourceNode(context);
+    const { nodeId, nodes, node, edges, updateNodeData } = context;
+    const activeSourceNode = getActiveSourceNode(nodes, edges, nodeId);
     const input = activeSourceNode?.data.output || ''; // 上游输入
     const target = node.data.targetValue || '';  // 设定的目标值
     const operator = node.data.operator || 'contains';

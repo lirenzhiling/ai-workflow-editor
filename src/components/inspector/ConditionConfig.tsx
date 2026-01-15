@@ -4,6 +4,7 @@ type Props = {
     nodeId: string;
     data: any;
     onChange: (nodeId: string, newData: any) => void;
+}
 
 const ConditionConfig = ({ nodeId, data, onChange }: Props) => {
     return (
