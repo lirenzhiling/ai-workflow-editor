@@ -415,8 +415,10 @@ const getProviderByModel = (modelName: string): 'doubao' | 'deepseek' => {
 // ----------------LLM 节点的逻辑---------------------
 
 //条件节点逻辑
-export const executeConditionNode = async ({ nodeId, node, sourceNode, updateNodeData }: ExecutionContext) => {
-    const input = sourceNode?.data.output || ''; // 上游输入
+export const executeConditionNode = async (context: ExecutionContext) => {
+    const { nodeId, node, updateNodeData } = context;
+    const activeSourceNode = getActiveSourceNode(context);
+    const input = activeSourceNode?.data.output || ''; // 上游输入
     const target = node.data.targetValue || '';  // 设定的目标值
     const operator = node.data.operator || 'contains';
 
