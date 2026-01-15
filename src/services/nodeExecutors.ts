@@ -379,7 +379,7 @@ export const executeVision = async ({ nodeId, prompt, sourceNode, abortSignal, u
                         const content = dataObj.content;
 
                         if (content) {
-                            console.log("收到片段:", content);
+                            // console.log("收到片段:", content);
                             currentOutput += content;
                             // 每次收到新内容，就更新节点数据
                             updateNodeData(nodeId, { output: currentOutput });

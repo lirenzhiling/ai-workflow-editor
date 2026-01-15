@@ -110,6 +110,32 @@ if (isResizingLeft.current) {
 }
 ```
 
+### 2.4.节点运行完后，按钮状态不变
+
+在我的end节点运行结束后，我的一键运行按钮还维持在可停止运行的状态
+
+![image-20260115161542647](./assets/image-20260115161542647.png)
+
+于是我在end节点的逻辑添加了stopFlow，修改全局状态
+
+```ts
+。。。
+updateNodeData(nodeId, { status: 'success' });
+stopFlow && stopFlow();
+```
+
+在store修改isRunning（判断是否正在一键运行的变量）
+
+```ts
+stopFlow: () => {
+    const { abortController } = get();
+    if (abortController) {
+        abortController.abort(); // 这一步会触发 fetch 的 reject ('AbortError')
+    }
+    set({ isRunning: false, abortController: null });
+},
+```
+
 
 
 ## 三、代码重构
