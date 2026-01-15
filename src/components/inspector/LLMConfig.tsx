@@ -1,4 +1,6 @@
 import React from 'react';
+import { MessageSquareMore } from 'lucide-react';
+import { isImageUrl } from '../../utils/image-utils';
 
 type Props = {
     nodeId: string;
@@ -8,21 +10,37 @@ type Props = {
 };
 
 const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
+    const outputText = data.output || '';
+    const hasOutput = Boolean(outputText);
+
+    const handleCopy = () => {
+        if (!hasOutput) return;
+        navigator.clipboard?.writeText(outputText).catch(() => {
+        });
+    };
+
     return (
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">模型型号</label>
             <select
-                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                value={data.model || 'GPT-4o'}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm outline-none"
+                value={data.model || 'Deepseek'}
                 onChange={(e) => onChange(nodeId, { model: e.target.value })}
             >
                 <option value="Deepseek">Deepseek</option>
-                <option value="GPT-4o">GPT-4o</option>
-                <option value="GPT-3.5">GPT-3.5</option>
-                <option value="Claude-3">Claude 3.5 Sonnet</option>
+                <option value="doubao">doubao</option>
+            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">功能选择</label>
+            <select
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm outline-none"
+                value={data.func || 'chat'}
+                onChange={(e) => onChange(nodeId, { func: e.target.value })}
+            >
+                <option value="chat">文字聊天</option>
+                <option value="image">图片生成</option>
             </select>
             <textarea
-                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2"
+                className="w-full border border-gray-300 rounded p-2 text-sm h-32 mt-2 outline-none"
                 placeholder="请输入提示词..."
                 value={data.prompt || ''}
                 onChange={(e) => onChange(nodeId, { prompt: e.target.value })}
@@ -36,21 +54,68 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
               ${data.status === 'running' ? 'bg-indigo-300' : 'bg-indigo-600 hover:bg-indigo-700'}
             `}
                 >
-                    {data.status === 'running' ? '🚀 正在思考...' : '▶ 运行'}
+                    {data.status === 'running' ? '正在思考...' : '运行'}
                 </button>
             </div>
             {/* 运行结果展示区 */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    📺 运行结果
-                </label>
-                <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
-                    {data.output ? (
-                        <span>{data.output}</span>
-                    ) : (
-                        <span className="text-gray-400 italic">等待运行...</span>
+                <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                        <MessageSquareMore className="inline-block w-4 h-4 mr-1" />
+                        运行结果
+                    </label>
+                    {data.func !== 'image' && (
+                        <button
+                            onClick={handleCopy}
+                            disabled={!hasOutput}
+                            className={`text-xs px-2 py-1 rounded border transition-colors ${hasOutput ? 'border-indigo-500 text-indigo-600 hover:bg-indigo-50' : 'border-gray-300 text-gray-400 cursor-not-allowed'}`}
+                        >
+                            复制
+                        </button>
                     )}
                 </div>
+                {(() => {
+                    switch (data.func) {
+                        case 'image':
+                            return <div>
+                                {
+                                    isImageUrl(data.output) ? (
+                                        <div className="relative group rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-50">
+                                            {/* 大图预览 */}
+                                            <img
+                                                src={data.output}
+                                                alt="Generated Preview"
+                                                className="w-full h-auto object-contain"
+                                            />
+                                            {/* 悬浮操作栏 */}
+                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-white text-xs">2048 x 2048</span>
+                                                <a
+                                                    href={data.output}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-white text-xs bg-indigo-600 px-2 py-1 rounded hover:bg-indigo-500 no-underline"
+                                                >
+                                                    下载原图
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-400 italic">等待图片生成...</span>
+                                    )
+                                }
+                            </div>
+                        default:
+                            return <div className="bg-gray-100 rounded p-3 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-200 overflow-y-auto max-h-60">
+                                {hasOutput ? (
+                                    <span>{outputText}</span>
+                                ) : (
+                                    <span className="text-gray-400 italic">等待运行...</span>
+                                )}
+                            </div>;
+                    }
+                })()}
+
 
             </div>
         </div>

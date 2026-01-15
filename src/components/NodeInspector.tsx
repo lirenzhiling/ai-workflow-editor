@@ -6,11 +6,14 @@ import useStore from '../store';
 import LLMConfig from './inspector/LLMConfig';
 import StartConfig from './inspector/StartConfig';
 import EndConfig from './inspector/EndConfig';
+import ConditionConfig from './inspector/ConditionConfig';
+import { Settings, Trash2 } from 'lucide-react';
 
 const configComponents: Record<string, React.FC<any>> = {
   startNode: StartConfig,
   llmNode: LLMConfig,
   endNode: EndConfig,
+  conditionNode: ConditionConfig,
 };
 
 const NodeInspector = () => {
@@ -40,11 +43,13 @@ const NodeInspector = () => {
 
   return (
     // 右侧面板容器
-    <div className="w-80 bg-white border-l border-gray-200 p-4 shadow-xl z-20 flex flex-col h-full">
+    <div className="w-full h-full bg-white p-4 z-20 flex flex-col">
       <div className="flex-1 overflow-y-auto">
-        <div className="font-bold mb-4 text-gray-700">⚙️ 节点配置</div>
-
-        {/* 调试信息：让你确认选对了没 */}
+        <div className='mb-4'>
+          <Settings className="inline-block mr-2 text-gray-500" />
+          <div className="font-bold inline-block text-gray-700">节点配置</div>
+        </div>
+        {/* 确认选对 */}
         <div className="text-xs text-gray-400 mb-4">ID: {selectedNode.id}</div>
 
         <label className="block text-sm font-medium text-gray-700 mb-1">节点名称</label>
@@ -64,7 +69,7 @@ const NodeInspector = () => {
         <div className="flex-1 overflow-y-auto">
           {ConfigComponent ? (
             <ConfigComponent
-              // 👇 把所有需要的参数都传进去
+              // 把所有需要的参数都传进去
               nodeId={selectedNode.id}
               data={selectedNode.data}
               onChange={updateNodeData}
@@ -85,7 +90,7 @@ const NodeInspector = () => {
           }}
           className="w-full py-2 text-red-600 border border-red-200 bg-red-50 rounded hover:bg-red-100 transition-colors text-sm font-medium"
         >
-          🗑️ 删除选中节点
+          <Trash2 className="inline-block w-4 h-4 mr-2" />删除节点
         </button>
       </div>
     </div>

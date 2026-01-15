@@ -58,6 +58,84 @@ type Props = {
 };
 ```
 
+### 2.3.设计拖拽时报错
+
+- 在我设计工具栏和节点配置面板时，由于默认会提交很多请求，引发报错ResizeObserver loop completed with undelivered notifications.
+
+解决方法：我把拖拽设计成了节流，固定ms请求一次（Stack Overflow的解决方法，针不戳）
+
+```tsx
+// 获取当前时间
+const now = Date.now();
+
+// 节流
+// 只有当距离上次更新超过 20ms时才执行
+// 这个频率足够防止ResizeObserver报错
+if (now - lastUpdateTime.current < 20) {
+	return;
+}
+
+// 更新时间戳
+lastUpdateTime.current = now;
+```
+
+- 我设计了在拖拽时改变鼠标样式，但除了hover，拖拽时显示的都是鼠标悬停在reactflow的小手。原因是计算样式时没添加拖拽手柄的宽度,例如这个工具栏拖拽手柄
+
+```tsx
+{/* 左侧：工具箱 */}
+<div
+  className="relative flex flex-col w-full border-r border-gray-200 shadow-lg"
+  style={{ width: sidebarWidth }}
+>
+  。。。
+
+
+  {/* 左侧拖拽手柄*/}
+  <div
+    onMouseDown={startResizeLeft}
+    className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-green-500 transition-colors z-20 group"
+  >
+  </div>
+  。。。
+</div>
+```
+
+```tsx
+// 处理左侧
+if (isResizingLeft.current) {
+    const newWidth = e.clientX + remToPx(0.25); // 考虑边框宽度
+    if (newWidth > 50 && newWidth < 600) {
+      setSidebarWidth(newWidth);
+    }
+}
+```
+
+### 2.4.节点运行完后，按钮状态不变
+
+在我的end节点运行结束后，我的一键运行按钮还维持在可停止运行的状态
+
+![image-20260115161542647](./assets/image-20260115161542647.png)
+
+于是我在end节点的逻辑添加了stopFlow，修改全局状态
+
+```ts
+。。。
+updateNodeData(nodeId, { status: 'success' });
+stopFlow && stopFlow();
+```
+
+在store修改isRunning（判断是否正在一键运行的变量）
+
+```ts
+stopFlow: () => {
+    const { abortController } = get();
+    if (abortController) {
+        abortController.abort(); // 这一步会触发 fetch 的 reject ('AbortError')
+    }
+    set({ isRunning: false, abortController: null });
+},
+```
+
 
 
 ## 三、代码重构

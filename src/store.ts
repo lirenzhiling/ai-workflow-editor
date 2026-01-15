@@ -4,11 +4,24 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { Node, NodeChange, Edge, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect, applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
 import { executors } from './services/nodeExecutors';
 
-// 这是我们的数据结构
+// 数据结构
 interface RFState {
     nodes: Node[];
     edges: Edge[];
     selectedNodeId: string | null;
+
+    isRunning: boolean;
+    abortController: AbortController | null;// 让运行中的节点停止对象
+
+    //用户的 API Key 存储
+    apiKeys: {
+        doubao: string;
+        deepseek: string;
+    };
+    updateApiKey: (provider: keyof RFState['apiKeys'], value: string) => void;
+    //api设置
+    isKeyModalOpen: boolean;
+    setIsKeyModalOpen: (isOpen: boolean) => void;
 
     // 方法定义
     onNodesChange: OnNodesChange;
@@ -20,6 +33,7 @@ interface RFState {
     deleteNode: (nodeId: string) => void;
     runNode: (nodeId: string, isRecursive?: boolean) => Promise<void>;
     runFlow: () => void;
+    stopFlow: () => void; // 停止方法
 }
 
 // 在这里实现 useStore
@@ -29,7 +43,7 @@ const initialNodes: Node[] = [
         id: 'node-1',
         type: 'llmNode',
         position: { x: 250, y: 100 },
-        data: { model: 'GPT-4o', status: 'ready' }
+        data: { model: 'Deepseek', status: 'ready' }
     },
 ];
 const useStore = create<RFState>()(
@@ -38,6 +52,14 @@ const useStore = create<RFState>()(
         nodes: initialNodes,
         edges: [],
         selectedNodeId: null,
+        isRunning: false,
+        abortController: null,
+        apiKeys: {
+            doubao: '',
+            deepseek: '',
+        },
+        isKeyModalOpen: false,
+        setIsKeyModalOpen: (isOpen: boolean) => set({ isKeyModalOpen: isOpen }),
         onNodesChange: (changes: NodeChange[]) => {
             set({
                 nodes: applyNodeChanges(changes, get().nodes),
@@ -80,6 +102,16 @@ const useStore = create<RFState>()(
             });
         },
         runNode: async (nodeId: string, isRecursive = false) => {
+            // 全局拦截
+            if (isRecursive && !get().isRunning) return;
+
+            //单点运行
+            if (!isRecursive) {
+                get().stopFlow(); // 先清理旧状态，防止冲突
+                const tempController = new AbortController();
+                set({ isRunning: true, abortController: tempController });
+            }
+
             // 找到该节点
             const node = get().nodes.find((n) => n.id === nodeId);
             if (!node) return;
@@ -96,14 +128,15 @@ const useStore = create<RFState>()(
                 //打包数据
                 const handler = executors[node.type || ''];
                 if (handler) {
-                    // 把 sourceNode 传进去！
                     await handler({
                         nodeId,
                         node,      // 把当前节点也传进去，方便取 data
                         nodes: get().nodes,
                         edges: get().edges,
                         updateNodeData: get().updateNodeData,
-                        sourceNode // 👈 喂给它！
+                        sourceNode,
+                        abortSignal: get().abortController?.signal,// 传递停止信号
+                        stopFlow: get().stopFlow // 传递停止流程的函数
                     });
                 } else {
                     console.warn(`未知的节点类型: ${node.type}`);
@@ -114,15 +147,36 @@ const useStore = create<RFState>()(
 
             try {
                 // 只有当 isRecursive 为 true 时，才触发下游
-                if (isRecursive) {
+                if (isRecursive && get().isRunning) {
                     const outgoingEdges = get().edges.filter(edge => edge.source === nodeId);
+                    // 获取当前节点
+                    const currentNode = get().nodes.find(n => n.id === nodeId);
                     outgoingEdges.forEach(edge => {
+                        // 逐个判断是否符合条件
+                        if (currentNode?.type === 'conditionNode') {
+                            const selectedPath = currentNode.data.selectedPath;
+
+                            // 如果这根线的ID不等于选中的路径，就跳过
+                            if (edge.sourceHandle !== selectedPath) {
+                                console.log(`不符合条件: 期望走 ${selectedPath}, 但这根线是 ${edge.sourceHandle}`);
+                                return;
+                            }
+                        }
+
+                        // 正常触发
                         // 告诉下游，开启递归模式
                         setTimeout(() => get().runNode(edge.target, true), 500);
                     });
                 }
+
+
             } catch (error) {
                 console.error("运行下游节点时出错", error);
+            } finally {
+                // 如果是单点调试，跑完这一个节点，就自动把isRunning关掉。
+                if (!isRecursive) {
+                    set({ isRunning: false, abortController: null });
+                }
             }
         },
         deleteNode: (nodeId: string) => {
@@ -138,6 +192,20 @@ const useStore = create<RFState>()(
             });
         },
         runFlow: () => {
+            //先停掉之前的
+            get().stopFlow();
+
+            //重置节点
+            const resetNodes = get().nodes.map(node => ({
+                ...node,
+                data: { ...node.data, status: 'idle' } // 清空状态和输出
+            }));
+            useStore.setState({ nodes: resetNodes });
+
+            // 创建新的控制器
+            const controller = new AbortController();
+            set({ isRunning: true, abortController: controller });
+
             const { nodes, runNode } = get();
             // 找到 Start 节点
             const startNode = nodes.find(n => n.type === 'startNode');
@@ -152,15 +220,31 @@ const useStore = create<RFState>()(
             // 开启runNode持续执行
             runNode(startNode.id, true);
         },
+        stopFlow: () => {
+            const { abortController } = get();
+            if (abortController) {
+                abortController.abort(); // 这一步会触发 fetch 的 reject ('AbortError')
+            }
+            set({ isRunning: false, abortController: null });
+        },
+        updateApiKey: (provider, value) => {
+            set((state) => ({
+                apiKeys: {
+                    ...state.apiKeys,
+                    [provider]: value
+                }
+            }));
+        },
     }),
         // 持久化配置,存到 LocalStorage
         {
             name: "ai-flow-storage",//key
             storage: createJSONStorage(() => localStorage),//存储方式:LocalStorage
-            // 存储内容: 只存 nodes 和 edges
+            // 存储内容: 只存 nodes、edges、apiKeys
             partialize: (state) => ({
                 nodes: state.nodes,
                 edges: state.edges,
+                apiKeys: state.apiKeys,
             }),
 
         }
