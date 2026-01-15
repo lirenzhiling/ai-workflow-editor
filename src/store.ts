@@ -19,6 +19,9 @@ interface RFState {
         deepseek: string;
     };
     updateApiKey: (provider: keyof RFState['apiKeys'], value: string) => void;
+    //api设置
+    isKeyModalOpen: boolean;
+    setIsKeyModalOpen: (isOpen: boolean) => void;
 
     // 方法定义
     onNodesChange: OnNodesChange;
@@ -55,6 +58,8 @@ const useStore = create<RFState>()(
             doubao: '',
             deepseek: '',
         },
+        isKeyModalOpen: false,
+        setIsKeyModalOpen: (isOpen: boolean) => set({ isKeyModalOpen: isOpen }),
         onNodesChange: (changes: NodeChange[]) => {
             set({
                 nodes: applyNodeChanges(changes, get().nodes),

@@ -88,7 +88,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, 
         return;
     }
 
-    const model = node.data.model || 'GPT-4o';
+    const model = node.data.model || 'Deepseek';
 
     // 取对应的 Key
     const provider = getProviderByModel(model);
@@ -117,7 +117,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, 
     const apiUrl = config.api.chat;
     try {
         console.log("发送内容：" + prompt);
-        console.log(userApiKey, provider);
+        // console.log(userApiKey, provider);
 
         const response = await fetch(apiUrl, {
             method: 'post',
@@ -135,16 +135,39 @@ export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, 
                 ]
             })
         });
-        if (!response.body) return;
+
+        // 检查 HTTP 状态码
+        if (!response.ok) {
+            let errorMessage = `请求失败: ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch {
+                // 如果不是 JSON，尝试读取文本
+                try {
+                    const errorText = await response.text();
+                    errorMessage = errorText || errorMessage;
+                } catch {
+                }
+            }
+            console.error('API 错误:', errorMessage);
+            updateNodeData(nodeId, { status: 'error', output: errorMessage });
+            const setIsKeyModalOpen = useStore.getState().setIsKeyModalOpen;
+            setIsKeyModalOpen(true);
+            return;
+        }
+
+        if (!response.body) {
+            updateNodeData(nodeId, { status: 'error', output: '响应体为空' });
+            return;
+        }
 
         // 拿到读取器 (Reader)
-        const reader = response.body?.getReader();
+        const reader = response.body.getReader();
         const decoder = new TextDecoder();
         if (!reader) return;
         // 临时存一下当前的完整句子
         let currentOutput = '';
-
-        // console.log("开始接收流式数据...");
 
         while (true) {
             // 一点点读数据
@@ -225,7 +248,26 @@ export const executeImage = async ({ nodeId, prompt, abortSignal, updateNodeData
             signal: abortSignal,
             body: JSON.stringify({ prompt: prompt })
         });
-
+        // 检查 HTTP 状态码
+        if (!response.ok) {
+            let errorMessage = `请求失败: ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch {
+                // 如果不是 JSON，尝试读取文本
+                try {
+                    const errorText = await response.text();
+                    errorMessage = errorText || errorMessage;
+                } catch {
+                }
+            }
+            console.error('API 错误:', errorMessage);
+            updateNodeData(nodeId, { status: 'error', output: errorMessage });
+            const setIsKeyModalOpen = useStore.getState().setIsKeyModalOpen;
+            setIsKeyModalOpen(true);
+            return;
+        }
         const data = await response.json();
 
         if (data.error) throw new Error(data.error);
@@ -242,6 +284,8 @@ export const executeImage = async ({ nodeId, prompt, abortSignal, updateNodeData
         } else if (error instanceof Error) {
             console.error(error);
             updateNodeData(nodeId, { status: 'error', output: `运行失败` });
+            const setIsKeyModalOpen = useStore.getState().setIsKeyModalOpen;
+            setIsKeyModalOpen(true);
         } else {
             console.error(error);
             updateNodeData(nodeId, { status: 'error', output: 'Unknown error occurred' });
@@ -278,16 +322,83 @@ export const executeVision = async ({ nodeId, prompt, sourceNode, abortSignal, u
             })
         });
 
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
+        // 检查 HTTP 状态码
+        if (!response.ok) {
+            let errorMessage = `请求失败: ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch {
+                // 如果不是 JSON，尝试读取文本
+                try {
+                    const errorText = await response.text();
+                    errorMessage = errorText || errorMessage;
+                } catch {
+                }
+            }
+            console.error('API 错误:', errorMessage);
+            updateNodeData(nodeId, { status: 'error', output: errorMessage });
+            const setIsKeyModalOpen = useStore.getState().setIsKeyModalOpen;
+            setIsKeyModalOpen(true);
+            return;
+        }
 
-        updateNodeData(nodeId, { status: 'success', output: data.result });
+        // const data = await response.json();
+        // if (data.error) throw new Error(data.error);
+        // const outputText = data?.data?.output_text ?? data?.output_text ?? data?.output ?? '';
+        if (!response.body) {
+            updateNodeData(nodeId, { status: 'error', output: '响应体为空' });
+            return;
+        }
+        // 拿到读取器 (Reader)
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        if (!reader) return;
+        // 临时存一下当前的完整句子
+        let currentOutput = '';
+
+        while (true) {
+            // 一点点读数据
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // 解码数据
+            const chunk = decoder.decode(value);
+
+            // 解析 SSE 格式 (data: {...})
+            // 后端发来的是：data: {"content":"你好"}\n\n
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.slice(6); // 去掉前面的 "data: "
+                    if (jsonStr === '[DONE]') break;
+
+                    try {
+                        const dataObj = JSON.parse(jsonStr);
+                        const content = dataObj.content;
+
+                        if (content) {
+                            console.log("收到片段:", content);
+                            currentOutput += content;
+                            // 每次收到新内容，就更新节点数据
+                            updateNodeData(nodeId, { output: currentOutput });
+                        }
+                    } catch (e) {
+                        console.error("解析出错", e);
+                    }
+                }
+            }
+        }
+        updateNodeData(nodeId, { status: 'success', output: currentOutput });
     } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
             updateNodeData(nodeId, { status: 'idle', output: '已手动停止' });
         } else if (error instanceof Error) {
             console.error(error);
             updateNodeData(nodeId, { status: 'error', output: '运行失败' });
+            const setIsKeyModalOpen = useStore.getState().setIsKeyModalOpen;
+            setIsKeyModalOpen(true);
         } else {
             console.error(error);
             updateNodeData(nodeId, { status: 'error', output: 'Unknown error occurred' });

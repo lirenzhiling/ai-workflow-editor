@@ -46,7 +46,7 @@ const FlowEditorContent = () => {
 
   // 从 Store 取出状态和方法
   // selector 模式：只监听我们需要的数据，避免不必要的渲染
-  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, isRunning, stopFlow, addNode, setSelectedNode, selectedNodeId, runFlow } = useStore(
+  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, isRunning, stopFlow, addNode, setSelectedNode, selectedNodeId, runFlow, isKeyModalOpen, setIsKeyModalOpen } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
       edges: state.edges,
@@ -59,10 +59,11 @@ const FlowEditorContent = () => {
       addNode: state.addNode,
       setSelectedNode: state.setSelectedNode,
       runFlow: state.runFlow,
+      isKeyModalOpen: state.isKeyModalOpen,
+      setIsKeyModalOpen: state.setIsKeyModalOpen,
     }))
   );
 
-  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   // 节点id变了自动打开节点配置面板
   useEffect(() => {
@@ -179,7 +180,12 @@ const FlowEditorContent = () => {
   return (
     <div className='flex h-full w-full flex-col'>
       {/* ... 遮罩层 ... */}
-      <ApiKeyModal isOpen={isKeyModalOpen} onClose={() => setIsKeyModalOpen(false)} />
+      {isKeyModalOpen && (
+        <ApiKeyModal
+          isOpen={isKeyModalOpen}
+          onClose={() => setIsKeyModalOpen(false)}
+        />
+      )}
       {/* 顶部工具栏 */}
       <div className="h-14 bg-white border-b border-gray-200 flex items-center px-4 justify-between shadow-sm z-10">
         <div className="font-bold text-gray-700 flex items-center gap-2">

@@ -19,18 +19,6 @@ const PROVIDER_CONFIG = {
   deepseek: "https://api.deepseek.com",
 };
 
-// 配置豆包生图 客户端
-const clientSeedream = new OpenAI({
-  apiKey: process.env.DOUBAO_API_KEY,
-  baseURL: 'https://ark.cn-beijing.volces.com/api/v3/images/generations', // 豆包火山引擎接口地址
-});
-
-// 配置豆包识图 客户端
-const clientVision = new OpenAI({
-  apiKey: process.env.DOUBAO_API_KEY,
-  baseURL: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-});
-
 // 图片处理：将图片转为 Base64（或使用图片 URL）
 async function getImageBase64(url) {
   const response = await fetch(url);
@@ -44,22 +32,22 @@ async function getImageBase64(url) {
 }
 
 
-// 文字聊天接口，暂时用ds
+// 文字聊天接口，暂时用ds或豆包
 app.post('/api/chat', async (req, res) => {
-  const { prompt, messages } = req.body;
+  const { messages } = req.body;
 
   // 支持从请求头获取 provider 和 api key
   const provider = req.headers['x-provider'] || 'doubao';
   const userKey = req.headers['x-api-key'];
 
   let finalApiKey = userKey;
-  if (!finalApiKey || finalApiKey.trim() === '') {
-    if (provider === 'deepseek') finalApiKey = process.env.DEEPSEEK_API_KEY;
-    else finalApiKey = process.env.ARK_API_KEY;
-  }
-
   if (!finalApiKey) {
     return res.status(500).json({ error: `未配置 ${provider} 的 API Key` });
+  }
+  //先用我的，后续删除
+  if (!finalApiKey || finalApiKey.trim() === '') {
+    if (provider === 'deepseek') finalApiKey = process.env.DEEPSEEK_API_KEY;
+    else finalApiKey = process.env.DEEPSEEK_API_KEY;
   }
 
   const baseURL = PROVIDER_CONFIG[provider];
@@ -72,6 +60,11 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     console.log('收到前端请求:', messages);
+
+    // 先设置响应头，告诉浏览器这是一个流
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
     let completion;
     if (provider === 'deepseek') {
@@ -90,11 +83,6 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // 设置响应头，告诉浏览器这是一个流
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
     // 处理流式数据
     for await (const chunk of completion) {
       const content = chunk.choices[0]?.delta?.content || '';
@@ -110,52 +98,48 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (error) {
     console.error('API 调用失败:', error);
-    res.status(500).json({ error: '服务器出错了' });
+    // 如果响应还没开始发送，返回 JSON 错误
+    if (!res.headersSent) {
+      return res.status(500).json({ error: '服务器出错了' });
+    }
+    // 如果已经开始流式传输，通过 SSE 发送错误
+    res.write(`data: ${JSON.stringify({ error: error.message || '服务器出错了' })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
   }
 });
 
 //图片生成接口，暂时用豆包
 app.post('/api/image', async (req, res) => {
+  const provider = req.headers['x-provider'] || 'doubao';
+  const userKey = req.headers['x-api-key'];
+
+  let finalApiKey = userKey;
+  if (!finalApiKey) {
+    return res.status(500).json({ error: `未配置 ${provider} 的 API Key` });
+  }
+  const baseURL = PROVIDER_CONFIG[provider];
+  console.log(`请求转发 -> Provider: ${provider} | URL: ${baseURL}`);
+
+  const client = new OpenAI({
+    apiKey: finalApiKey,
+    baseURL: baseURL,
+  });
   try {
     const { prompt } = req.body;
     console.log('申请豆包绘图:', prompt);
 
-    // 准备请求体
-    const payload = {
+    // 发送请求到火山引擎
+    const response = await client.images.generate({
       model: "doubao-seedream-4-5-251128", // 我的模型
       prompt: prompt,
       size: "2048x2048", // 这个模型需要比较大的尺寸，1K都不行
       response_format: "url",
       watermark: true
-    };
-
-    // 发送请求到火山引擎 (Ark)
-    const response = await fetch(clientSeedream.baseURL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // 从环境变量读取 Key
-        'Authorization': `Bearer ${clientSeedream.apiKey}`
-      },
-      body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
-
-    // 错误处理
-    if (data.error) {
-      console.error('豆包报错:', data.error);
-      throw new Error(data.error.message || 'API 请求错误');
-    }
-
-    // 提取图片 URL
-    if (data.data && data.data.length > 0) {
-      const imageUrl = data.data[0].url;
-      console.log('图片生成成功:', imageUrl);
-      res.json({ imageUrl });
-    } else {
-      throw new Error('返回数据格式异常');
-    }
+    console.log('图片生成成功:', response.data[0].url);
+    res.json({ imageUrl: response.data[0].url });
 
   } catch (error) {
     console.error('绘图失败:', error.message);
@@ -165,58 +149,57 @@ app.post('/api/image', async (req, res) => {
 
 //图片识别接口，暂时用豆包
 app.post('/api/vision', async (req, res) => {
+  const provider = req.headers['x-provider'] || 'doubao';
+  const userKey = req.headers['x-api-key'];
+
+  let finalApiKey = userKey;
+  if (!finalApiKey) {
+    return res.status(500).json({ error: `未配置 ${provider} 的 API Key` });
+  }
+  const baseURL = PROVIDER_CONFIG[provider];
+  console.log(`请求转发 -> Provider: ${provider} | URL: ${baseURL}`);
+
+  const client = new OpenAI({
+    apiKey: finalApiKey,
+    baseURL: baseURL,
+  });
   try {
     const { prompt, imageUrl } = req.body;
     console.log('申请豆包识图:', prompt);
-    const imageBase64 = await getImageBase64(imageUrl);
-    // 准备请求体
-    const payload = {
+    // 发送请求到火山引擎 (Ark)
+    const completion = await client.responses.create({
       model: "ep-20260113160702-42fmh", // 我的模型
-      messages: [
+      input: [
         {
           role: 'user',
           content: [
             {
-              type: 'text',
-              text: prompt
+              type: 'input_image',
+              image_url: imageUrl
             },
             {
-              type: 'image_url',
-              image_url: {
-                url: imageBase64, // 图片 Base64 或 URL
-                detail: 'high' // 高细节模式（可选：high/low）
-              }
-            }
+              type: 'input_text',
+              text: prompt
+            },
           ]
         }
       ],
-      stream: false
-    };
-
-    // 发送请求到火山引擎 (Ark)
-    const response = await fetch(clientVision.baseURL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // 从环境变量读取 Key
-        'Authorization': `Bearer ${clientVision.apiKey}`
-      },
-      body: JSON.stringify(payload)
+      stream: true,
     });
 
-    const data = await response.json();
-
-    // 错误处理
-    if (data.error) {
-      console.error('豆包报错:', data.error);
-      throw new Error(data.error.message || 'API 请求错误');
+    for await (const chunk of completion) {
+      if (chunk.type === 'response.output_text.delta') {
+        const content = chunk.delta || '';
+        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      } else if (chunk.type === 'response.completed') {
+        res.write('data: [DONE]\n\n');
+        res.end();
+      }
     }
 
-    // 返回内容
-    const result = data.choices?.[0]?.message?.content;
-    if (!result) throw new Error('返回数据格式异常');
-
-    res.json({ result });
+    // 结束
+    res.write('data: [DONE]\n\n');
+    res.end();
 
   } catch (error) {
     console.error('识图失败:', error.message);
