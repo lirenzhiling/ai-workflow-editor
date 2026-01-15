@@ -105,7 +105,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, 
         await executeImage({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, nodes, edges, updateNodeData });
         return;
     }
-    if (activeSource.data.func === 'image' && isImageUrl(activeSource.data.output)) {
+    if (activeSource && activeSource.data.func === 'image' && isImageUrl(activeSource.data.output)) {
         await executeVision({ nodeId, node, prompt, sourceNode: activeSource, abortSignal, updateNodeData, nodes, edges });
         return;
     }
