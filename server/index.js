@@ -45,7 +45,7 @@ app.post('/api/chat', async (req, res) => {
     return res.status(500).json({ error: `未配置 ${provider} 的 API Key` });
   }
   //先用我的，后续删除
-  if (!finalApiKey || finalApiKey.trim() === '') {
+  if (finalApiKey.trim() === '') {
     if (provider === 'deepseek') finalApiKey = process.env.DEEPSEEK_API_KEY;
     else finalApiKey = process.env.DEEPSEEK_API_KEY;
   }
