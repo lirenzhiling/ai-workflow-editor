@@ -3,6 +3,7 @@
 interface StreamRequestOptions {
     url: string;
     method?: string;
+    func?: "chat" | "image";
     headers?: Record<string, string>;
     body?: any;
     abortSignal?: AbortSignal;
@@ -17,6 +18,7 @@ interface StreamRequestOptions {
 export async function fetchStream({
     url,
     method = 'POST',
+    func,
     headers = {},
     body,
     abortSignal,
@@ -55,36 +57,45 @@ export async function fetchStream({
             return;
         }
 
-        // 2. 流式读取核心逻辑
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        // 2. 读取核心逻辑
+        if (func === 'image') {
+            const data = await response.json();
+            onData(data)
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        } else if (func === 'chat') {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const jsonStr = line.slice(6);
-                    if (jsonStr === '[DONE]') break;
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
 
-                    try {
-                        const dataObj = JSON.parse(jsonStr);
-                        const content = dataObj.content || dataObj.delta; // 兼容不同后端字段
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const jsonStr = line.slice(6);
+                        if (jsonStr === '[DONE]') break;
 
-                        // 触发回调
-                        if (content) {
-                            onData(content);
+                        try {
+                            const dataObj = JSON.parse(jsonStr);
+                            const content = dataObj.content || dataObj.delta; // 兼容不同后端字段
+
+                            // 触发回调
+                            if (content) {
+                                onData(content);
+                            }
+                        } catch (e) {
+                            console.warn("SSE 解析忽略非JSON行:", line);
                         }
-                    } catch (e) {
-                        console.warn("SSE 解析忽略非JSON行:", line);
                     }
                 }
             }
         }
+
+
+
     } catch (error: any) {
         // 如果是手动停止，不视为错误，但也可以抛出让外层处理
         if (error.name === 'AbortError') {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MessageSquareMore } from 'lucide-react';
 import { isImageUrl } from '../../utils/image-utils';
 
@@ -12,6 +12,8 @@ type Props = {
 const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
     const outputText = data.output || '';
     const hasOutput = Boolean(outputText);
+
+    const [imageError, setImageError] = useState(false);
 
     const handleCopy = () => {
         if (!hasOutput) return;
@@ -79,13 +81,14 @@ const LLMConfig = ({ nodeId, data, onChange, runNode }: Props) => {
                         case 'image':
                             return <div>
                                 {
-                                    isImageUrl(data.output) ? (
+                                    (isImageUrl(data.output) && !imageError) ? (
                                         <div className="relative group rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-50">
                                             {/* 大图预览 */}
                                             <img
                                                 src={data.output}
                                                 alt="Generated Preview"
                                                 className="w-full h-auto object-contain"
+                                                onError={() => setImageError(true)}
                                             />
                                             {/* 悬浮操作栏 */}
                                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">

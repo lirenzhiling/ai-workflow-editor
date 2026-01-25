@@ -134,6 +134,7 @@ export const executeLLMNode = async ({ nodeId, node, nodes, edges, abortSignal, 
                 prompt: prompt,
                 messages: [{ role: 'user', content: prompt }]
             },
+            func: 'chat',
             // 收到数据
             onData: (textChunk) => {
                 currentOutput += textChunk;
@@ -173,63 +174,42 @@ export const executeImage = async ({ nodeId, prompt, abortSignal, updateNodeData
     //画图只能用指定的ai
     const userApiKey = useStore.getState().apiKeys.doubao;
 
-    try {
-        // 调用刚才写的后端接口
-        // 这里的 replace 是为了复用 Webpack 注入的 API_URL 基础路径
-        const apiUrl = config.api.image;
+    let res = null
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
+    try {
+        await fetchStream({
+            url: config.api.image,
             headers: {
-                'Content-Type': 'application/json',
                 'x-api-key': userApiKey || '',
                 'x-provider': 'doubao'
             },
-            signal: abortSignal,
-            body: JSON.stringify({ prompt: prompt })
-        });
-        // 检查 HTTP 状态码
-        if (!response.ok) {
-            let errorMessage = `请求失败: ${response.status} ${response.statusText}`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.error || errorMessage;
-            } catch {
-                // 如果不是 JSON，尝试读取文本
-                try {
-                    const errorText = await response.text();
-                    errorMessage = errorText || errorMessage;
-                } catch {
-                }
+            abortSignal,
+            func: 'image',
+            body: { prompt: prompt },
+            // 收到数据
+            onData: (data: string) => {
+                // 图片URL可能直接返回或在imageUrl字段中
+                res = typeof data === 'string' ? JSON.parse(data) : data;
+                updateNodeData(nodeId, { output: res.imageUrl });
+            },
+            // 出错
+            onError: (errMsg) => {
+                console.log('生成失败' + errMsg);
+                updateNodeData(nodeId, { status: 'error', output: errMsg });
+                useStore.getState().setIsKeyModalOpen(true);
             }
-            console.error('API 错误:', errorMessage);
-            updateNodeData(nodeId, { status: 'error', output: errorMessage });
-            const setIsKeyModalOpen = useStore.getState().setIsKeyModalOpen;
-            setIsKeyModalOpen(true);
-            return;
-        }
-        const data = await response.json();
-
-        if (data.error) throw new Error(data.error);
-
-        // 成功
-        updateNodeData(nodeId, {
-            status: 'success',
-            output: data.imageUrl
         });
 
-    } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        // 跑完了如果没有抛错，就是成功
+        updateNodeData(nodeId, {
+            status: 'success'
+        });
+    } catch (error: any) {
+        // 单独处理 Abort
+        if (error.name === 'AbortError') {
             updateNodeData(nodeId, { status: 'idle', output: '已手动停止' });
-        } else if (error instanceof Error) {
-            console.error(error);
-            updateNodeData(nodeId, { status: 'error', output: `运行失败` });
-            const setIsKeyModalOpen = useStore.getState().setIsKeyModalOpen;
-            setIsKeyModalOpen(true);
-        } else {
-            console.error(error);
-            updateNodeData(nodeId, { status: 'error', output: 'Unknown error occurred' });
         }
+        // 其他错误已经在 onError 里处理过了，这里不需要重复 updateNodeData
     }
 
 };
@@ -257,6 +237,7 @@ export const executeVision = async ({ nodeId, prompt, provider, model, sourceNod
                 'x-provider': provider
             },
             abortSignal,
+            func: 'chat',
             body: {
                 model: model,
                 prompt: prompt || '请描述这张图片的内容',
