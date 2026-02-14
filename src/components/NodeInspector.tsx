@@ -1,5 +1,4 @@
 // src/components/NodeInspector.tsx
-import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
 
@@ -8,6 +7,7 @@ import StartConfig from './inspector/StartConfig';
 import EndConfig from './inspector/EndConfig';
 import ConditionConfig from './inspector/ConditionConfig';
 import { Settings, Trash2 } from 'lucide-react';
+import { workflowRunner } from '../services/workflowEngine';
 
 const configComponents: Record<string, React.FC<any>> = {
   startNode: StartConfig,
@@ -18,20 +18,14 @@ const configComponents: Record<string, React.FC<any>> = {
 
 const NodeInspector = () => {
   // 从 Store 取出需要的数据和方法
-  const { nodes, selectedNodeId, updateNodeData, runNode, deleteNode } = useStore(
+  const { selectedNode, updateNodeData, deleteNode } = useStore(
     useShallow((state) => ({
-      nodes: state.nodes,
-      selectedNodeId: state.selectedNodeId,
       updateNodeData: state.updateNodeData,
-      runNode: state.runNode,
+      // runNode: state.runNode,
       deleteNode: state.deleteNode,
+      selectedNode: state.nodes.find((n) => n.id === state.selectedNodeId)
     }))
   );
-
-  // 找到当前被选中的那个节点
-  const selectedNode = nodes.find((node) => {
-    return node.id === selectedNodeId;
-  });
 
   // 如果没有选中节点，就显示个空状态
   if (!selectedNode) {
@@ -40,6 +34,13 @@ const NodeInspector = () => {
 
   // 动态获取对应的配置组件
   const ConfigComponent = configComponents[selectedNode.type || ''];
+
+  // 定义一个新的运行节点函数
+  const handleRunNode = async (nodeId: string) => {
+    // 调用刚才公开的 executeNode 方法
+    // 这里的逻辑是：只运行这一个，不触发后续流程，非常适合调试
+    await workflowRunner.runSingleNode(nodeId);
+  };
 
   return (
     // 右侧面板容器
@@ -73,7 +74,7 @@ const NodeInspector = () => {
               nodeId={selectedNode.id}
               data={selectedNode.data}
               onChange={updateNodeData}
-              runNode={runNode}
+              runNode={handleRunNode}
             />
           ) : (
             <div className="text-gray-400 italic">该节点类型暂无配置项</div>

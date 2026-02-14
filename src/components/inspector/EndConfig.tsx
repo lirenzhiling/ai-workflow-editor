@@ -1,6 +1,4 @@
-import React from 'react';
 import { isImageUrl } from '../../utils/image-utils';
-
 
 type Props = {
     data: any;

@@ -1,6 +1,5 @@
 // src/components/Sidebar.tsx
 import { Bot, Flag, Split } from 'lucide-react';
-import React from 'react';
 
 const Sidebar = () => {
   // 当用户开始拖拽时触发

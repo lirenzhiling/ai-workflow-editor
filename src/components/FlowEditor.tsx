@@ -14,6 +14,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
+
+import { workflowRunner } from '../services/workflowEngine';
 import LLMNode from './nodes/LLMNode';
 import Sidebar from './Sidebar';
 import NodeInspector from './NodeInspector';
@@ -46,19 +48,19 @@ const FlowEditorContent = () => {
 
   // 从 Store 取出状态和方法
   // selector 模式：只监听我们需要的数据，避免不必要的渲染
-  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, isRunning, stopFlow, addNode, setSelectedNode, selectedNodeId, runFlow, isKeyModalOpen, setIsKeyModalOpen } = useStore(
+  const { nodes, onNodesChange, edges, onEdgesChange, onConnect, isRunning, addNode, setSelectedNode, selectedNodeId, isKeyModalOpen, setIsKeyModalOpen } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
       edges: state.edges,
       selectedNodeId: state.selectedNodeId,
       isRunning: state.isRunning,
-      stopFlow: state.stopFlow,
+      // stopFlow: state.stopFlow,
       onNodesChange: state.onNodesChange,
       onEdgesChange: state.onEdgesChange,
       onConnect: state.onConnect,
       addNode: state.addNode,
       setSelectedNode: state.setSelectedNode,
-      runFlow: state.runFlow,
+      // runFlow: state.runFlow,
       isKeyModalOpen: state.isKeyModalOpen,
       setIsKeyModalOpen: state.setIsKeyModalOpen,
     }))
@@ -202,7 +204,7 @@ const FlowEditorContent = () => {
           </button>
           {isRunning ? (
             <button
-              onClick={stopFlow}
+              onClick={() => workflowRunner.stop()}
               className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors shadow-md flex items-center gap-2"
             >
               <CircleStop className="w-5 h-5" />
@@ -210,7 +212,7 @@ const FlowEditorContent = () => {
             </button>
           ) : (
             <button
-              onClick={runFlow}
+              onClick={() => workflowRunner.start()}
               className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors shadow-md flex items-center gap-2"
             >
               <CirclePlay className="w-5 h-5" />

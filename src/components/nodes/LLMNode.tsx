@@ -5,6 +5,7 @@ import { Bot } from 'lucide-react';
 
 import useStore from '../../store';
 import { useShallow } from 'zustand/react/shallow';
+import { workflowRunner } from '../../services/workflowEngine';
 
 // 使用 memo 包裹，防止画布拖动时其他不相关的节点重复渲染（性能优化）
 const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
@@ -13,13 +14,9 @@ const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     chat: '文字聊天',
     image: '图片生成',
   };
-
-  const { runNode } = useStore(
-    /* 在这里写代码 */
-    useShallow((state) => ({
-      runNode: state.runNode,
-    }))
-  );
+  const handleRun = () => {
+    workflowRunner.runSingleNode(id);
+  };
 
 
   const funcLabel = funcLabels[data.func] || funcLabels.chat;
@@ -37,14 +34,14 @@ const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
       {/* 内容区域 */}
       <div className="p-2 bg-gray-50 flex items-center">
         <div className="text-xs text-gray-500 mr-2">模型选择</div>
-        <div className="text-sm font-bold text-gray-700" >{data.model || 'GPT-4o'}</div>
+        <div className="text-sm font-bold text-gray-700" >{data.model || 'Deepseek'}</div>
       </div>
       <div className="p-2 bg-gray-50 flex items-center">
         <div className="text-xs text-gray-500 mr-2">功能选择</div>
         <div className="text-sm font-bold text-gray-700" >{funcLabel}</div>
       </div>
       <button
-        onClick={() => runNode(id)}
+        onClick={handleRun}
         className={`w-full text-white p-1 rounded transition-colors flex items-center justify-center
             ${data.status === 'running' ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'}
             ${data.status === 'success' ? 'bg-green-500 hover:bg-green-600' : ''}

@@ -19,7 +19,7 @@ const ConditionNode = memo(({ data, selected }: NodeProps) => {
             <div className='p-4 bg-gray-50 flex flex-col gap-2 min-h-[80px]'>
                 <div className="flex">
                     <div className="text-xs text-gray-500">
-                        条件 <span className="font-bold">{data.operator || '未填写'}</span>
+                        条件 <span className="font-bold">{(data.operator || '未填写') + ' ' + data.targetValue}</span>
                     </div>
                     <div className="absolute -right-3 flex items-center">
                         <span className="text-xs font-bold mr-4 px-1">if</span>
