@@ -53,6 +53,31 @@ app.post('/api/chat', async (req, res) => {
     baseURL: baseURL,
   });
 
+  // 创建后端专属控制器
+  const backendController = new AbortController();
+  let hasClientDisconnected = false;
+
+  const abortUpstreamIfClientGone = (reason) => {
+    if (hasClientDisconnected || backendController.signal.aborted) {
+      return;
+    }
+    hasClientDisconnected = true;
+    console.log(`检测到前端连接异常断开(${reason})，中止大模型请求`);
+    backendController.abort();
+  };
+
+  // 请求体在上传过程中被中断
+  req.on('aborted', () => {
+    abortUpstreamIfClientGone('request aborted');
+  });
+
+  // 注意：不能监听 req.close，它在请求体正常结束时也会触发
+  // 这里监听 response close，并且排除正常结束（writableEnded=true）
+  res.on('close', () => {
+    if (res.writableEnded) return;
+    abortUpstreamIfClientGone('response closed');
+  });
+
   try {
     console.log('收到前端请求:', messages);
 
@@ -68,18 +93,26 @@ app.post('/api/chat', async (req, res) => {
         messages: messages, // 前端传来的历史记录
         model: 'deepseek-chat', // 或者 'deepseek-coder'
         stream: true, // 开启流式传输
-      });
+      },
+        {
+          signal: backendController.signal// 把信号线绑给大模型
+        });
     } else {
       // 发送请求给豆包（使用 OpenAI SDK 统一处理）
       completion = await client.chat.completions.create({
         messages: messages, // 前端传来的历史记录
         model: "doubao-seed-1-6-lite-251015", // 豆包模型 ID
-        stream: true, // 开启流式传输
-      });
+        stream: true, // 开启流式传输 
+      },
+        {
+          signal: backendController.signal// 把信号线绑给大模型
+        });
     }
 
     // 处理流式数据
     for await (const chunk of completion) {
+      // 打印正在接收的数据块
+      // process.stdout.write('内容.'); // 用 process.stdout.write 不换行打印，看着更直观
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
         // SSE 格式：以 data: 开头，双换行结尾
@@ -92,6 +125,13 @@ app.post('/api/chat', async (req, res) => {
     res.end();
 
   } catch (error) {
+    console.log(error);
+
+    // 拦截中断错误，不当做普通报错处理
+    if (error.name === 'AbortError') {
+      console.log('\n后端向大模型的请求也已成功中断，省下 Token\n');
+      return;
+    }
     console.error('API 调用失败:', error);
     // 如果响应还没开始发送，返回 JSON 错误
     if (!res.headersSent) {

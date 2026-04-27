@@ -115,7 +115,7 @@ class WorkflowRunner {
         try {
             const handler = executors[node.type || ''];
             if (!handler) return false;
-            console.log(2223);
+            // console.log(2223);
             // 准备上下文
             const incomingEdge = store.edges.find((edge) => edge.target === nodeId);
             const sourceNode = incomingEdge
