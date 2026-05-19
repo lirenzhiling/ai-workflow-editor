@@ -11,3 +11,6 @@ dist/
 # 编辑器配置
 .vscode/
 .idea/
+
+#ai
+.cursorrules

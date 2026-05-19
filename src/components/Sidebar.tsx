@@ -1,5 +1,5 @@
 // src/components/Sidebar.tsx
-import { Bot, Flag, Split } from 'lucide-react';
+import { Bot, Flag, Split, BookOpen } from 'lucide-react';
 
 const Sidebar = () => {
   // 当用户开始拖拽时触发
@@ -39,6 +39,15 @@ const Sidebar = () => {
       >
         <Bot className="mr-2  text-indigo-500" />
         <span className="font-medium text-indigo-700">大模型 LLM</span>
+      </div>
+      {/* 知识库节点模版 */}
+      <div
+        className="h-16 border-2 border-emerald-500 rounded cursor-grab flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 transition-colors"
+        onDragStart={(event) => onDragStart(event, 'knowledgeNode')}
+        draggable
+      >
+        <BookOpen className="mr-2 text-emerald-500" />
+        <span className="font-medium text-emerald-700">知识库</span>
       </div>
       {/* 条件判断节点模版 */}
       <div

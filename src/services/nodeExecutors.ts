@@ -3,6 +3,8 @@ import { Node, Edge } from 'reactflow';
 import { isImageUrl } from '../utils/image-utils';
 
 import { fetchStream } from '../utils/request-utils';
+import { chunkTextWithOverlap } from '../utils/text-chunker';
+import { IRetrieverStrategy, SparseRetriever, DenseRetriever } from './retrievalStrategy';
 
 import useStore from '../store';
 
@@ -33,6 +35,7 @@ export const config = {
         image: `${apiBaseUrl}/image`,
         chat: `${apiBaseUrl}/chat`,
         vision: `${apiBaseUrl}/vision`,
+        embeddings: `${apiBaseUrl}/embeddings`,
     },
 };
 
@@ -91,6 +94,58 @@ export const executeStartNode = async ({ nodeId, node, updateNodeData }: Executi
         status: 'success',
         output
     });
+};
+
+// Knowledge 知识库节点的逻辑
+export const executeKnowledgeNode = async ({ nodes, edges, nodeId, node, updateNodeData }: ExecutionContext) => {
+    const documentText = node.data.documentText || '';
+    //上游节点数据 (可以当作检索的 query)
+    const activeSource = getActiveSourceNode(nodes, edges, nodeId);
+    const query = activeSource?.data?.output || node.data.prompt || '';
+
+    if (activeSource) {
+        console.log(activeSource.data.output.slice(0, 10));
+    }
+
+    if (!documentText.trim()) {
+        updateNodeData(nodeId, { status: 'error', output: '未加载文档数据' });
+        return;
+    }
+
+    // 引入策略模式和降级逻辑
+    const mode = node.data.retrievalMode || 'sparse';
+    const store = useStore.getState();
+    const dashscopeKey = store.apiKeys.dashscope;
+
+    let retriever: IRetrieverStrategy;
+
+    if (mode === 'dense' && dashscopeKey) {
+        retriever = new DenseRetriever(dashscopeKey);
+    } else {
+        retriever = new SparseRetriever();
+    }
+
+    updateNodeData(nodeId, { status: 'running' });
+
+    try {
+        const topKChunks = await retriever.retrieve(query, documentText, 3);
+
+        // 切片排版
+        const formattedOutput = topKChunks.map((chunk, index) => {
+            return `[片段 ${index + 1}]:\n${chunk}`;
+        }).join('\n\n');
+        console.log(topKChunks);
+
+        // 输出给下游
+        updateNodeData(nodeId, {
+            status: 'success',
+            output: formattedOutput
+        });
+    } catch (e: any) {
+        console.error("Retrieval failed", e);
+        // 如果 dense 失败也可以再 fallback 一次，这里先直接报错
+        updateNodeData(nodeId, { status: 'error', output: `检索失败: ${e.message}` });
+    }
 };
 
 
@@ -337,5 +392,6 @@ export const executors: Record<string, Function> = {
     startNode: executeStartNode,
     endNode: executeEndNode,
     llmNode: executeLLMNode,
+    knowledgeNode: executeKnowledgeNode,
     conditionNode: executeConditionNode,
 };

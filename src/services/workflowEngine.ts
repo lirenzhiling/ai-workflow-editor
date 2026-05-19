@@ -33,12 +33,6 @@ class WorkflowRunner {
             return;
         }
 
-        // 把起点加入清单
-        // this.queue.push(startNode.id);
-
-        // 启动循环引擎
-        // await this.processQueue();
-        // 启动全图扫描引擎
         this.activeTasks = 0;
         this.checkAndRun();
     }
@@ -230,25 +224,6 @@ class WorkflowRunner {
         }
     }
 
-    // 调度下游
-    // private scheduleNextNodes(nodeId: string) {
-    //     const store = useStore.getState();
-    //     const outgoingEdges = store.edges.filter(edge => edge.source === nodeId);
-    //     const currentNode = store.nodes.find(n => n.id === nodeId);
-
-    //     outgoingEdges.forEach(edge => {
-    //         // 处理条件节点逻辑 (ConditionNode)
-    //         if (currentNode?.type === 'conditionNode') {
-    //             const selectedPath = currentNode.data.selectedPath;
-    //             if (edge.sourceHandle !== selectedPath) return;
-    //         }
-
-    //         // 把下游节点的 ID push 进清单
-    //         // if (!this.queue.includes(edge.target)) {
-    //         //     this.queue.push(edge.target);
-    //         // }
-    //     });
-    // }
 
     // 辅助工具：把所有节点状态重置为 idle
     private resetNodes(store: RFState) {

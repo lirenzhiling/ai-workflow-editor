@@ -17,6 +17,7 @@ const ApiKeyModal = ({ isOpen, onClose }: Props) => {
 
     const [showDoubao, setShowDoubao] = useState(false);
     const [showDeepseek, setShowDeepseek] = useState(false);
+    const [showDashScope, setShowDashScope] = useState(false);
 
     if (!isOpen) return null;
 
@@ -75,6 +76,33 @@ const ApiKeyModal = ({ isOpen, onClose }: Props) => {
                                 onClick={() => setShowDeepseek(!showDeepseek)}
                             >
                                 {showDeepseek ? (
+                                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                                ) : (
+                                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 阿里百炼 (DashScope) */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1 flex justify-between">
+                            <span>百炼 (DashScope)</span>
+                            <span className="text-gray-400 font-normal">用于知识库向量检索</span>
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showDashScope ? "text" : "password"}
+                                value={apiKeys.dashscope}
+                                onChange={(e) => updateApiKey('dashscope', e.target.value)}
+                                placeholder="sk-xxxxxxxx (DashScope)"
+                                className="w-full border border-gray-300 rounded p-2 text-sm font-mono focus:border-green-500 outline-none"
+                            />
+                            <div
+                                className="absolute right-3 top-2 cursor-pointer"
+                                onClick={() => setShowDashScope(!showDashScope)}
+                            >
+                                {showDashScope ? (
                                     <Eye className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                                 ) : (
                                     <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-600" />

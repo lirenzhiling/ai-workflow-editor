@@ -17,6 +17,7 @@ app.use(express.json());
 const PROVIDER_CONFIG = {
   doubao: "https://ark.cn-beijing.volces.com/api/v3",
   deepseek: "https://api.deepseek.com",
+  aliyuncs: "https://dashscope.aliyuncs.com/compatible-mode/v1"
 };
 
 // 图片处理：将图片转为 Base64（或使用图片 URL）
@@ -238,6 +239,38 @@ app.post('/api/vision', async (req, res) => {
 
   } catch (error) {
     console.error('识图失败:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 暂时只有阿里 向量嵌入接口，用于高精度知识库检索 (Dense Retriever)
+app.post('/api/embeddings', async (req, res) => {
+  const userKey = req.headers['x-api-key'];
+
+  if (!userKey) {
+    return res.status(500).json({ error: '未配置 DashScope 的 API Key' });
+  }
+
+  // 默认直接调用 DashScope 的兼容接口
+  const client = new OpenAI({
+    apiKey: userKey,
+    baseURL: PROVIDER_CONFIG.aliyuncs,
+  });
+
+  try {
+    const { input } = req.body;
+    console.log('申请向量嵌入，分块数量:', input.length);
+
+    const completion = await client.embeddings.create({
+      model: 'text-embedding-v4',
+      input: input
+    });
+
+    // 成功后把 data 阵列甩回给前端
+    res.json({ data: completion.data });
+
+  } catch (error) {
+    console.error('获取向量失败:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

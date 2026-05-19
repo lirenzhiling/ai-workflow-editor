@@ -17,6 +17,7 @@ export interface RFState {
     apiKeys: {
         doubao: string;
         deepseek: string;
+        dashscope: string;
     };
     updateApiKey: (provider: keyof RFState['apiKeys'], value: string) => void;
     //api设置
@@ -47,6 +48,7 @@ const useStore = create<RFState>()(
         apiKeys: {
             doubao: '',
             deepseek: '',
+            dashscope: '',
         },
         isKeyModalOpen: false,
         setIsKeyModalOpen: (isOpen: boolean) => set({ isKeyModalOpen: isOpen }),

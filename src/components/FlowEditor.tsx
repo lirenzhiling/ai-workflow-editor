@@ -17,6 +17,7 @@ import useStore from '../store';
 
 import { workflowRunner } from '../services/workflowEngine';
 import LLMNode from './nodes/LLMNode';
+import KnowledgeNode from './nodes/KnowledgeNode';
 import Sidebar from './Sidebar';
 import NodeInspector from './NodeInspector';
 import StartNode from './nodes/StartNode';
@@ -26,6 +27,7 @@ import ApiKeyModal from './ApiKeyModal';
 
 const nodeTypes = {
   llmNode: LLMNode,
+  knowledgeNode: KnowledgeNode,
   startNode: StartNode,
   endNode: EndNode,
   conditionNode: ConditionNode,

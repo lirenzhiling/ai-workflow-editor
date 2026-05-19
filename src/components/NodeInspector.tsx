@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../store';
 
 import LLMConfig from './inspector/LLMConfig';
+import KnowledgeConfig from './inspector/KnowledgeConfig';
 import StartConfig from './inspector/StartConfig';
 import EndConfig from './inspector/EndConfig';
 import ConditionConfig from './inspector/ConditionConfig';
@@ -12,6 +13,7 @@ import { workflowRunner } from '../services/workflowEngine';
 const configComponents: Record<string, React.FC<any>> = {
   startNode: StartConfig,
   llmNode: LLMConfig,
+  knowledgeNode: KnowledgeConfig,
   endNode: EndConfig,
   conditionNode: ConditionConfig,
 };
