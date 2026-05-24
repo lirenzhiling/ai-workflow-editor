@@ -1,0 +1,78 @@
+name: Build and Deploy to BT Panel (Alibaba Cloud)
+
+# 触发条件：向 main 分支推送代码时触发
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 拉取 GitHub 仓库的最新的代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. 设置 Node.js 环境（GitHub 云端机器编译打包用）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. 在云端安装依赖并用 Webpack 编译出前端静态文件
+      - name: Install and Build Frontend
+        run: |
+          npm config set registry https://registry.npmmirror.com
+          npm install
+          npm run build
+
+      # 4. 在云端进入后端 server 文件夹，把生产依赖装好
+      - name: Install Backend Dependencies
+        run: |
+          cd server
+          npm config set registry https://registry.npmmirror.com
+          npm install --production
+
+      # 5. 【关键】：帮宝塔把前端打包出的 dist 发送到网站目录
+      - name: Deploy Frontend to BT wwwroot
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASS }}
+          source: "dist/"
+          # 宝塔里前端绝对路径
+          target: "/www/wwwroot/ai-workflow"
+          strip_components: 1 # 把一层无用的 dist/ 外壳剥掉，直接把里面的文件平铺进网站目录
+
+      # 6. 【关键】：把后端代码和依赖发到宝塔的后端目录
+      - name: Deploy Backend to BT wwwroot
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASS }}
+          source: "server/,package.json"
+          # 宝塔里后端绝对路径
+          target: "/www/wwwroot/ai-workflow/server"
+          strip_components: 0
+
+      # 7. 远程登录宝塔后台，帮让 PM2（宝塔内置或自装的）重启后端进程
+      - name: SSH Restart Node Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASS }}
+          script: |
+            # 自动全局安装一次 pm2（防止宝塔环境下 root 找不到命令）
+            npm install -g pm2 --registry=https://registry.npmmirror.com
+            
+            # 进入宝塔的后端目录
+            cd /www/wwwroot/ai-workflow-backend/server
+            
+            # 用 PM2 刷新或者启动你的后端 Node 服务
+            pm2 delete ai-workflow-backend || true
+            pm2 start index.js --name "ai-workflow-backend"
