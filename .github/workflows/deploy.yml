@@ -15,6 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+        # 【新增】：用 nc 命令测试端口连通性
+      - name: Network Connectivity Test (Telnet/Nc)
+        run: |
+          echo "==== 正在测试服务器公网 IP 的 22 端口 ===="
+          nc -zv -w 5 ${{ secrets.SERVER_HOST }} 22 || echo "❌ 22端口物理不通！"
+          
+          echo "==== 正在测试服务器公网 IP 的 33805 端口 ===="
+          nc -zv -w 5 ${{ secrets.SERVER_HOST }} 33805 || echo "❌ 33805端口物理不通！"
+
       # 2. 设置 Node.js 环境（GitHub 云端机器编译打包用）
       - name: Setup Node.js
         uses: actions/setup-node@v4
