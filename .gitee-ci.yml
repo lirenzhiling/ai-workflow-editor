@@ -1,0 +1,42 @@
+name: BT-Server-Deploy-Via-Variables
+
+# 当 master 分支有代码 push 时，自动在境内触发
+stages:
+  - build_and_deploy
+
+deploy_job:
+  stage: build_and_deploy
+  apps:
+    - master
+  
+  # 使用 Gitee 官方内置的境内 Node20 构建机（速度极快）
+  image: node:20
+  
+  script:
+    # 1. 编译前端（走国内淘宝镜像源，全面提速）
+    - npm config set registry https://registry.npmmirror.com
+    - npm install
+    - npm run build
+    
+    # 2. 补齐后端依赖
+    - cd server
+    - npm config set registry https://registry.npmmirror.com
+    - npm install --production
+    - cd ..
+    
+    # 3. 安装 Linux 远程传输必备的工具
+    - apt-get update && apt-get install -y sshpass
+    
+    # 4. 【境内直连】部署前端：把 dist 静态资源强行覆盖进宝塔 Nginx 目录
+    - sshpass -p "$SERVER_PASS" scp -P 22 -o StrictHostKeyChecking=no -r dist/* root@$SERVER_HOST:/www/wwwroot/ai-workflow/
+    
+    # 5. 【境内直连】部署后端：把 server 文件夹扔进宝塔对应的位置
+    - sshpass -p "$SERVER_PASS" scp -P 22 -o StrictHostKeyChecking=no -r server package.json root@$SERVER_HOST:/www/wwwroot/ai-workflow/
+    
+    # 6. 【瞬间热重启】通过 SSH 管道让阿里云本地的 PM2 刷新进程
+    - |
+      sshpass -p "$SERVER_PASS" ssh -p 22 -o StrictHostKeyChecking=no root@$SERVER_HOST << 'EOF'
+        cd /www/wwwroot/ai-workflow/server
+        pm2 delete server || true
+        pm2 start index.js --name "server"
+      EOF
