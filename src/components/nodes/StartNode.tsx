@@ -3,6 +3,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import useStore from '../../store';
 import { useShallow } from 'zustand/react/shallow';
 import { Flag } from 'lucide-react';
+import NodeTemplate from './NodeTemplate';
 
 const StartNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     const { updateNodeData } = useStore(
@@ -10,13 +11,12 @@ const StartNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     );
 
     return (
-        <div className={`w-64 bg-white rounded-lg border-2 border-pink-500 shadow-xl overflow-hidden transition-shadow duration-200 ${selected ? 'ring-8 ring-pink-400/70 ring-offset-4 shadow-2xl shadow-pink-500/60 scale-105' : ''}`}>
-            {/* 标题栏 */}
-            <div className="p-2 text-white flex items-center bg-pink-500 bg-gradient-to-r from-pink-500 to-rose-500">
-                <Flag className="mr-2" />
-                <span className="font-bold text-sm">开始节点</span>
-            </div>
-
+        <NodeTemplate
+            title="开始节点"
+            icon={<Flag />}
+            theme="pink"
+            selected={selected}
+        >
             {/* 内容区 */}
             <div className="p-4 bg-gray-50">
                 <label className="text-xs text-gray-500 block mb-1">输入</label>
@@ -33,9 +33,9 @@ const StartNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
                 type="source"
                 position={Position.Right}
                 isConnectable={isConnectable}
-                className="w-3 h-3 bg-pink-500"
+                className="!w-4 !h-4 !right-[-7px] !bg-pink-500"
             />
-        </div>
+        </NodeTemplate>
     );
 });
 

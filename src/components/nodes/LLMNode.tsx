@@ -3,9 +3,8 @@ import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Bot } from 'lucide-react';
 
-import useStore from '../../store';
-import { useShallow } from 'zustand/react/shallow';
 import { workflowRunner } from '../../services/workflowEngine';
+import NodeTemplate from './NodeTemplate';
 
 // 使用 memo 包裹，防止画布拖动时其他不相关的节点重复渲染（性能优化）
 const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
@@ -23,14 +22,12 @@ const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
 
   return (
     // 外层容器：一个带紫色边框的卡片样式
-    <div className={`w-64 bg-white rounded-lg border-2 border-indigo-500 shadow-xl overflow-hidden transition-shadow duration-200 ${selected ? 'ring-8 ring-indigo-400/70 ring-offset-4 shadow-2xl shadow-indigo-500/60 scale-105' : ''}`}>
-
-      {/* 标题栏 */}
-      <div className="p-2 text-white flex items-center bg-indigo-500 bg-gradient-to-r">
-        <Bot className="mr-2" />
-        <span className="font-bold text-sm">大模型 (LLM)</span>
-      </div>
-
+    <NodeTemplate
+      title="大模型 (LLM)"
+      icon={<Bot />}
+      theme="indigo"
+      selected={selected}
+    >
       {/* 内容区域 */}
       <div className="p-2 bg-gray-50 flex items-center">
         <div className="text-xs text-gray-500 mr-2">模型选择</div>
@@ -42,7 +39,7 @@ const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
       </div>
       <button
         onClick={handleRun}
-        className={`w-full text-white p-1 rounded transition-colors flex items-center justify-center
+        className={`w-full text-white p-1 transition-colors flex items-center justify-center
             ${data.status === 'running' ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600'}
             ${data.status === 'success' ? 'bg-green-500 hover:bg-green-600' : ''}
           `}
@@ -60,7 +57,7 @@ const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
         type="target"
         position={Position.Left}
         isConnectable={isConnectable} // 这是 reactflow 传下来的开关
-        className="w-3 h-3 bg-indigo-500" // 样式：把小圆点变成紫色
+        className="!w-4 !h-4 !left-[-7px] !bg-indigo-500" // 加上感叹号强制生效（这里改回合适的圆形宽高 !w-4 !h-4）
       />
 
       {/* 右边的输出点 */}
@@ -68,9 +65,9 @@ const LLMNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
-        className="w-3 h-3 bg-indigo-500"
+        className="!w-4 !h-4 !right-[-7px] !bg-indigo-500"
       />
-    </div>
+    </NodeTemplate>
   );
 });
 
