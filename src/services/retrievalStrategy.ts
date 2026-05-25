@@ -24,22 +24,45 @@ export class SparseRetriever implements IRetrieverStrategy {
         // 如果用户没填问题，就直接返回文章最开头的 topK 段
         if (!query.trim()) return chunks.slice(0, topK);
 
-        // 第二步：简单粗暴的关键词匹配打分 (即 TF：词频计算)
-        // 把问题转小写，然后按空格分割成一个个单独的词(terms)
-        const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.trim().length > 0);
+        // 第二步：使用浏览器原生 API 进行中文智能分词，提取关键词
+        let queryTerms: string[] = [];
+        try {
+            // 尝试使用原生的 Intl.Segmenter (支持中英混排切词)
+            // @ts-ignore 因为某些较旧的TS版本可能未收录 Segmenter 声明
+            const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'word' });
+
+            queryTerms = Array.from(segmenter.segment(query.toLowerCase()))
+                // isWordLike 用于过滤掉纯标点符号
+                .filter((s: any) => s.isWordLike)
+                .map((s: any) => s.segment);
+        } catch (e) {
+            // 兜底方案：如果浏览器不支持（如极老版本），退化为空格切割
+            queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.trim().length > 0);
+        }
 
         // 第三步：给每一块文本进行遍历打分
         const scoredChunks = chunks.map(chunk => {
             const chunkLower = chunk.toLowerCase();
             let score = 0;
+            let matchedTermsCount = 0; // 记录命中了多少个不同的搜索词
+
             for (const term of queryTerms) {
                 // 统计该词在这个 chunk 里出现了几次。
                 // replace 里是为了给特殊符号转义，防止正则报错
                 const matches = chunkLower.match(new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
                 if (matches) {
-                    score += matches.length; // 出现多少次就加多少分
+                    // 频率封顶：单个词出现再多次，最多只贡献 3 分，防止“刷分”
+                    score += Math.min(matches.length, 3);
+                    matchedTermsCount++; // 记录命中了一个新的搜索词
                 }
             }
+
+            // 【核心优化】：多词共现给极大权重
+            // 命中的词越多，基数越大。让命中 2 个词的片段得分(至少20) 远超 命中 1 个词次(最高13分)的片段
+            if (matchedTermsCount > 0) {
+                score += matchedTermsCount * 10;
+            }
+
             return { chunk, score };
         });
 
